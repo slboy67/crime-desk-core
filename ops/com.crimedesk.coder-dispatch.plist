@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- EVENT-DRIVEN coder dispatch (macOS launchd). WatchPaths fires coder_dispatch.sh
+     whenever handoffs/ changes — so a newly-filed (OPEN) spec auto-launches the coder
+     (gated: isolated worktree+branch, no merge). This file is a TEMPLATE: the desk-root and
+     ntfy-url placeholders are rendered by ops/install_launchd.sh, which also (re)loads the job.
+     Install / re-install after editing:  bash ops/install_launchd.sh
+     Stop:  launchctl unload ~/Library/LaunchAgents/com.crimedesk.coder-dispatch.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.crimedesk.coder-dispatch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__DESK_ROOT__/ops/coder_dispatch.sh</string>
+  </array>
+  <key>WatchPaths</key>
+  <array>
+    <string>__DESK_ROOT__/handoffs</string>
+    <!-- WatchPaths is NOT recursive: per-spec tickets land in handoffs/specs/open/,
+         which does not change the handoffs/ dir entry itself - watch it explicitly. -->
+    <string>__DESK_ROOT__/handoffs/specs/open</string>
+    <!-- SPEC-70: the spec WRITE fires dispatch seconds before the orchestrator's COMMIT
+         lands on main; dispatch reads main, so it used to WARN-exit and nothing re-fired
+         (3 manual kicks in 24h). Watching the main ref makes the commit itself a trigger;
+         the script's poll-retry window covers the same race in-process. Re-install after
+         merge: cp + launchctl unload/load (see header). -->
+    <string>__DESK_ROOT__/.git/refs/heads/main</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <!-- launchd's default soft fd limit (256) killed a 90-min coder run with EMFILE
+       (2026-06-10, rc=1, "sudo launchctl limit maxfiles" in its dying output). -->
+  <key>SoftResourceLimits</key>
+  <dict><key>NumberOfFiles</key><integer>65536</integer></dict>
+  <key>HardResourceLimits</key>
+  <dict><key>NumberOfFiles</key><integer>65536</integer></dict>
+  <key>StandardErrorPath</key>
+  <string>__DESK_ROOT__/state/coder-dispatch.err</string>
+  <key>StandardOutPath</key>
+  <string>__DESK_ROOT__/state/coder-dispatch.out</string>
+</dict>
+</plist>

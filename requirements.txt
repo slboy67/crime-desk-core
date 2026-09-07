@@ -1,0 +1,6 @@
+# SPEC-170: capabilities/venue_account.py needs eth_account for Aster's V3 API-wallet
+# signing scheme (EIP-712 typed-data signature over each request, not a Binance-style
+# HMAC key) — hand-rolling secp256k1/Keccak/EIP-712 encoding from scratch is not a
+# reasonable substitute for a security-critical signing path. Every other capability in
+# this repo is stdlib-only; this is a deliberate, narrow exception.
+eth_account>=0.13

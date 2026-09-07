@@ -1,0 +1,52 @@
+{
+  "_doc": "Smart-money + distributor wallet seed set for the accumulation-radar (long edge, project_close_gaps_goal) and distributor-tracking (short edge). Sourced from user on-chain intel 2026-06-23 (WCUP DEX dump + GENIUS top-holder dump + ID unlock). HARD GATE: radar/edge is backtest-gated (\u00a79, n=1) \u2014 these are SEED wallets to track + verify, NOT a trade signal yet. Verify each (verify_wallet, probe contract) before treating as 'smart money'; CT/intel labels are unverified until on-chain confirmed.",
+  "sourced_ts": "2026-06-23",
+  "absorbers_long_edge": {
+    "_role": "smart money that ABSORBS capitulation dumps (limit-buy the flush, bank the bounce) \u2014 the accumulation-radar long-edge seed",
+    "GENIUS_absorbers": [
+      "0xbbbbb0d7d2d23ee6fb0c30ffedb02be37e9eb343",
+      "0x8afb8fc9bab7194a5390a3906d796938f2b83c08",
+      "0x105f2629fc6ed3bf6449e660b011c9bebb3f5e93",
+      "0x0f02e7f28e1865801ec70926c4b18e332e04afba",
+      "0x7d7f7544cbfaffe30b526ac6f4c7178e6695fec3",
+      "0x3333d2e2903197cf807c27f336c518b3440c7bcd",
+      "0x28865081bc479bdeafd226d5eb99669005972d59",
+      "0x0a8a7d93691bbc78d59767136c6a56cc29d61833",
+      "0x7c1bbc14064dac305b34ed574e42685403fcf37c",
+      "0x1097f0982521c6256e4a91fa52e895e6625e3e48",
+      "0xc536096a209ece6dd14555ef2c78fa5bc895c4a1"
+    ],
+    "WCUP_dump_profiteers": [
+      "0x4CbEB4AC1ba9318ce9a3bc16eC38834B1d5dF112",
+      "0x57902Be126Ac675E9ac525198077D1075481A5d6",
+      "0xC21715596ec2Ea551Dbc7c9C549df103B3Dd0D42",
+      "0xD38Db3e20429eB9caB01b5FA3B23bf908fC53349",
+      "0x72D2A83d221A263b70A438aE8dBb5Eb5b5B920cC",
+      "0x5513bfA595BcBBeb57BD06023DFE605dE1009B6d",
+      "0x58D3382fC3fc09B08eE4560a41008856321e926d",
+      "0xAce77365daC21F7E1Cb39aBD873A3EbBeEDF2Ac0",
+      "0x5BBD367758Ccb3E99f47fADb00ED88f2479273c2",
+      "0x30Ad022602f53351a83401E3E684f69a0f551fA3",
+      "0x54f3A59e52585Da312bfF5E2456D921e97fC489F",
+      "0x5ab7a0a59F888a91Bc29b6de952Af4b67e61152e",
+      "0x90DBb211f8605b515EFf3Dd0d54D29e71fA2E868",
+      "0xA2C1710a53EDCFF79B2d4B0E57D746bac2BFA034"
+    ],
+    "cluster_accumulator_0xaDFffc33_VERIFIED": {
+      "_role": "VERIFIED on-chain accumulation-radar wallet (2026-06-26). Pulls from Bitget 6, NEVER sells (pure accumulation). The LAB/SKYAI/COLLECT cluster accumulator.",
+      "address": "0xaDFffc33cdC9970349CBcEa3D73Ec343d6ed116D",
+      "verified_holdings": {
+        "COLLECT": "128.75M (4.29% total / ~24% circ), $5.8M, 34d, Bitget 6, 31in/0out, INDEPENDENT-HOLDER",
+        "SKYAI": "148.3M (14.83% supply), $48M, 14d, Bitget 6, 61in/0out, accumulating (net-long FLOOR under SKYAI)",
+        "LAB": "10.8M (1.08%), held 35d, now DISTRIBUTING (16in/44out)"
+      },
+      "cex_channel": "Bitget 6 (0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23)",
+      "verified_ts": "2026-06-26"
+    }
+  },
+  "distributors_short_edge": {
+    "_role": "top-holder/unlock distributors \u2014 short-side seeds (watch for fresh distribution)",
+    "GENIUS_top_holder_dumper": "0x9d9695C225D566D77848C19f4728F62A5466E68a",
+    "ID_unlock_recipient": "0x062A7c8975d6D8A4Ad14E05e87AFfb9EcB9DDCa6"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "_note": "SPEC-118 deposit-breadth metric thresholds. window_h = trailing window a breadth read covers; baseline_windows = how many prior windows form the baseline (mean); spike_multiple = current senders >= baseline * this = spike candidate; usd_floor = total USD (stable-leg/spot-priced) must also clear this; min_abs_senders = small-sample guard (absolute floor regardless of ratio, so a near-zero baseline can't blow the ratio up into a false spike); days = transfer-log lookback; young_nonce_max reuses SPEC-98's fresh-wallet fingerprint (config/rotation_freshness.json onchain_young_nonce_max); max_channels bounds provider reads.",
+  "window_h": 24,
+  "baseline_windows": 7,
+  "spike_multiple": 3.0,
+  "usd_floor": 100000,
+  "min_abs_senders": 8,
+  "days": 1,
+  "young_nonce_max": 50,
+  "max_channels": 3
+}

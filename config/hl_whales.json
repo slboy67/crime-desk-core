@@ -1,0 +1,12 @@
+{
+  "_notes": "Hyperliquid-native whale wallets watched for position changes. When a wallet's position size grows substantially or reverses, it's tradeable signal on the token they're moving. Same audit-before-trust discipline applies (see feedback_audit_preloaded_entities_before_trust).",
+  "whales": [
+    {
+      "label": "HMSTR-PUMPER",
+      "address": "0x02b0f4d585456a1f808ffe25624a0e2dafe52ffd",
+      "type": "single_token_pumper",
+      "watching_token": "HMSTR",
+      "_note": "Identified 2026-05-26 via digest: 'fresh wallet pumping $HMSTR on Hyperliquid, after which the token surged 16%'. Audit found wallet is ACTIVE (running TWAP exit at $0.000155 — 8 recent 'Close Long' fills as of 2026-05-26 23:30 UTC). Currently holds $532K long at 3x cross, entry $0.000165, uPnL -6.9%. Watch for: continued reduction = HMSTR short pays / position reversal = stop short."
+    }
+  ]
+}

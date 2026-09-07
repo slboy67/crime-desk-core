@@ -1,0 +1,336 @@
+{
+  "_doc": "SPEC-99 auto-built operator graph (capabilities/operator_graph.py) \u2014 do not hand-edit; re-run to refresh. See config/clusters.json for the manually-curated \u00a77 roster this seeds names from.",
+  "built_ts": 1782993937.321897,
+  "clusters": {
+    "CLUSTER-AIN-AIO-BLUAI-COAI-IDOL-LIGHT-RAVE-SKYAI-VELVET": {
+      "evidence": [
+        {
+          "address": "0xc882b111a75c0c657fc507c04fbfcd2cc984f071",
+          "evidence": [
+            "BLUAI:BLUAI-OPS-MEGAWHALE(distribution)",
+            "SKYAI:SKYAI-CEXMM-HOT-39pct(distribution)",
+            "LIGHT:LIGHT-SKYAI-CLUSTER-HOT-2.20pct(distribution)"
+          ],
+          "tier": "distribution",
+          "tokens": [
+            "BLUAI",
+            "LIGHT",
+            "SKYAI"
+          ]
+        },
+        {
+          "address": "0xffa8db7b38579e6a2d14f9b347a9ace4d044cd54",
+          "evidence": [
+            "RAVE:SKYAI-PRIMARY-DISTRIBUTOR(distribution)",
+            "SKYAI:SKYAI-CEXMM-HOT-17pct(distribution)",
+            "LIGHT:LIGHT-SKYAI-CLUSTER-HOT-4.39pct(distribution)",
+            "VELVET:XTOKEN-SKYAI-DISTRIBUTOR(distribution)",
+            "IDOL:SKYAI-DISTRIBUTOR-ffa8(distribution)",
+            "COAI:CLUSTER-SWEEPER-0xffa8(op)",
+            "AIN:CLUSTER-SWEEPER-0xffa8(op)",
+            "AIO:CLUSTER-SWEEPER-0xffa8(op)"
+          ],
+          "tier": "distribution",
+          "tokens": [
+            "AIN",
+            "AIO",
+            "COAI",
+            "IDOL",
+            "LIGHT",
+            "RAVE",
+            "SKYAI",
+            "VELVET"
+          ]
+        }
+      ],
+      "first_seen_ts": 1782993937.321897,
+      "id": "CLUSTER-AIN-AIO-BLUAI-COAI-IDOL-LIGHT-RAVE-SKYAI-VELVET",
+      "last_verified_ts": 1782993937.321897,
+      "members": [
+        "AIN",
+        "AIO",
+        "BLUAI",
+        "COAI",
+        "IDOL",
+        "LIGHT",
+        "RAVE",
+        "SKYAI",
+        "VELVET"
+      ],
+      "wallets": [
+        {
+          "address": "0xc882b111a75c0c657fc507c04fbfcd2cc984f071",
+          "evidence": [
+            "BLUAI:BLUAI-OPS-MEGAWHALE(distribution)",
+            "SKYAI:SKYAI-CEXMM-HOT-39pct(distribution)",
+            "LIGHT:LIGHT-SKYAI-CLUSTER-HOT-2.20pct(distribution)"
+          ],
+          "tier": "distribution"
+        },
+        {
+          "address": "0xffa8db7b38579e6a2d14f9b347a9ace4d044cd54",
+          "evidence": [
+            "RAVE:SKYAI-PRIMARY-DISTRIBUTOR(distribution)",
+            "SKYAI:SKYAI-CEXMM-HOT-17pct(distribution)",
+            "LIGHT:LIGHT-SKYAI-CLUSTER-HOT-4.39pct(distribution)",
+            "VELVET:XTOKEN-SKYAI-DISTRIBUTOR(distribution)",
+            "IDOL:SKYAI-DISTRIBUTOR-ffa8(distribution)",
+            "COAI:CLUSTER-SWEEPER-0xffa8(op)",
+            "AIN:CLUSTER-SWEEPER-0xffa8(op)",
+            "AIO:CLUSTER-SWEEPER-0xffa8(op)"
+          ],
+          "tier": "distribution"
+        }
+      ]
+    },
+    "XTOKEN-MM": {
+      "evidence": [
+        {
+          "address": "0x11fc12b988933966688d33b70651b5f2f450963c",
+          "evidence": [
+            "BILL:OP-XTOKEN-LAB-SKYAI(op)",
+            "LAB:MM-HOT-XTOKEN(op)"
+          ],
+          "tier": "op",
+          "tokens": [
+            "BILL",
+            "LAB"
+          ]
+        },
+        {
+          "address": "0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23",
+          "evidence": [
+            "OPN:XTOKEN-MM-AGGREGATOR(op)",
+            "BILL:AGGREGATOR(op)",
+            "BSB:XTOKEN-BILL-AGGREGATOR(op)",
+            "EDEN:XTOKEN-MM-AGGREGATOR(op)"
+          ],
+          "tier": "op",
+          "tokens": [
+            "BILL",
+            "BSB",
+            "EDEN",
+            "OPN"
+          ]
+        },
+        {
+          "address": "0x58edf78281334335effa23101bbe3371b6a36a51",
+          "evidence": [
+            "BILL:FEEDER-58EDF7(distribution)",
+            "EDEN:XTOKEN-MM-FEEDER-58EDF7(op)"
+          ],
+          "tier": "distribution",
+          "tokens": [
+            "BILL",
+            "EDEN"
+          ]
+        },
+        {
+          "address": "0xf89d7b9c864f589bbf53a82105107622b35eaa40",
+          "evidence": [
+            "OPN:XTOKEN-BILL-FEEDER(op)",
+            "BILL:UNMAPPED-FEEDER-68M(team)",
+            "BSB:XTOKEN-BILL-FEEDER(op)"
+          ],
+          "tier": "op",
+          "tokens": [
+            "BILL",
+            "BSB",
+            "OPN"
+          ]
+        }
+      ],
+      "first_seen_ts": 1782993937.321897,
+      "id": "XTOKEN-MM",
+      "last_verified_ts": 1782993937.321897,
+      "members": [
+        "BILL",
+        "BSB",
+        "EDEN",
+        "LAB",
+        "OPN"
+      ],
+      "wallets": [
+        {
+          "address": "0x11fc12b988933966688d33b70651b5f2f450963c",
+          "evidence": [
+            "BILL:OP-XTOKEN-LAB-SKYAI(op)",
+            "LAB:MM-HOT-XTOKEN(op)"
+          ],
+          "tier": "op"
+        },
+        {
+          "address": "0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23",
+          "evidence": [
+            "OPN:XTOKEN-MM-AGGREGATOR(op)",
+            "BILL:AGGREGATOR(op)",
+            "BSB:XTOKEN-BILL-AGGREGATOR(op)",
+            "EDEN:XTOKEN-MM-AGGREGATOR(op)"
+          ],
+          "tier": "op"
+        },
+        {
+          "address": "0x58edf78281334335effa23101bbe3371b6a36a51",
+          "evidence": [
+            "BILL:FEEDER-58EDF7(distribution)",
+            "EDEN:XTOKEN-MM-FEEDER-58EDF7(op)"
+          ],
+          "tier": "distribution"
+        },
+        {
+          "address": "0xf89d7b9c864f589bbf53a82105107622b35eaa40",
+          "evidence": [
+            "OPN:XTOKEN-BILL-FEEDER(op)",
+            "BILL:UNMAPPED-FEEDER-68M(team)",
+            "BSB:XTOKEN-BILL-FEEDER(op)"
+          ],
+          "tier": "op"
+        }
+      ]
+    }
+  },
+  "weak_edges": [
+    {
+      "address": "0x000000000004444c5dc75cb358380d2e3de08a90",
+      "evidence": [
+        "FOLKS:GOPLUS-TOP4(cex)",
+        "JCT:GOPLUS-TOP10(unclassified)",
+        "XPON:GOPLUS-TOP2(unclassified)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "FOLKS",
+        "JCT",
+        "XPON"
+      ]
+    },
+    {
+      "address": "0x0d0707963952f2fba59dd06f2b425ace40b492fe",
+      "evidence": [
+        "SKYAI:SKYAI-EOA-CEX-14Mnonce(op)",
+        "LIGHT:LIGHT-SKYAI-CLUSTER-MEV-1.45pct(distribution)",
+        "EVAA:GOPLUS-TOP7(unclassified)",
+        "NAORIS:GOPLUS-TOP8(unclassified)",
+        "BEL:GOPLUS-TOP8(unclassified)",
+        "BLESS:GOPLUS-TOP3(unclassified)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "BEL",
+        "BLESS",
+        "EVAA",
+        "LIGHT",
+        "NAORIS",
+        "SKYAI"
+      ]
+    },
+    {
+      "address": "0x4982085c9e2f89f2ecb8131eca71afad896e89cb",
+      "evidence": [
+        "SKYAI:SKYAI-EOA-CEX-20Mnonce(op)",
+        "ELIZAOS:ELIZAOS-CROSS-TOKEN-MEV-26pct(distribution)",
+        "CLO:GOPLUS-TOP5(unclassified)",
+        "EVAA:GOPLUS-TOP8(unclassified)",
+        "BTW:GOPLUS-TOP9(unclassified)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "BTW",
+        "CLO",
+        "ELIZAOS",
+        "EVAA",
+        "SKYAI"
+      ]
+    },
+    {
+      "address": "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db",
+      "evidence": [
+        "RAVE:BINANCE-WALLET-PROXY(cex)",
+        "GUA:BINANCE-WALLET-PROXY(cex)",
+        "BLUAI:BINANCE-WALLET-PROXY(cex)",
+        "SKYAI:BINANCE-WALLET-PROXY(cex)",
+        "AIOT:BINANCE-WALLET-PROXY(cex)",
+        "ELIZAOS:BINANCE-WALLET-PROXY(cex)",
+        "LIGHT:BINANCE-WALLET-PROXY(cex)",
+        "COLLECT:BINANCE-WALLET-PROXY(cex)",
+        "H:BINANCE-WALLET-PROXY(cex)",
+        "SIREN:BINANCE-WALLET-PROXY(cex)",
+        "SLX:BINANCE-WALLET-PROXY(cex)",
+        "IDOL:BINANCE-WALLET-PROXY(cex)",
+        "CLO:BINANCE-WALLET-PROXY(cex)",
+        "EVAA:BINANCE-WALLET-PROXY(cex)",
+        "BTW:BINANCE-WALLET-PROXY(cex)",
+        "BLESS:BINANCE-WALLET-PROXY(cex)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "AIOT",
+        "BLESS",
+        "BLUAI",
+        "BTW",
+        "CLO",
+        "COLLECT",
+        "ELIZAOS",
+        "EVAA",
+        "GUA",
+        "H",
+        "IDOL",
+        "LIGHT",
+        "RAVE",
+        "SIREN",
+        "SKYAI",
+        "SLX"
+      ]
+    },
+    {
+      "address": "0x8894e0a0c962cb723c1976a4421c95949be2d4e3",
+      "evidence": [
+        "OPN:OPN-HIGH-CHURN-HOT-1.9pct(op)",
+        "ID:GOPLUS-TOP1(cex)",
+        "NIGHT:GOPLUS-TOP1(unclassified)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "ID",
+        "NIGHT",
+        "OPN"
+      ]
+    },
+    {
+      "address": "0x9239df3e9996c776d539eb9f01a8ae8e7957b3c3",
+      "evidence": [
+        "ID:GOPLUS-TOP5(cex)",
+        "NIGHT:GOPLUS-TOP5(unclassified)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "ID",
+        "NIGHT"
+      ]
+    },
+    {
+      "address": "0xf977814e90da44bfa03b6295a0616a897441acec",
+      "evidence": [
+        "OPN:BINANCE-HOT-35pct(cex)",
+        "EDEN:BINANCE-HOT-47M(op)",
+        "PORTAL:GOPLUS-TOP3(unclassified)",
+        "HIGH:GOPLUS-TOP4(unclassified)",
+        "HEI:GOPLUS-TOP1(unclassified)",
+        "RESOLV:GOPLUS-TOP3(unclassified)",
+        "BEL:GOPLUS-TOP1(unclassified)",
+        "ESP:GOPLUS-TOP7(unclassified)"
+      ],
+      "tag": "weak:shared_cex_funder",
+      "tokens": [
+        "BEL",
+        "EDEN",
+        "ESP",
+        "HEI",
+        "HIGH",
+        "OPN",
+        "PORTAL",
+        "RESOLV"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "_doc": "SPEC 41 (size.py) — operator-cluster membership (§7 operator-heat: crime coins sharing an MM are ONE position at multiplied size; cap combined account-risk per cluster). size.py warns when a cluster-mate has a live thesis (status ACTIVE*/PENDING) on the watchlist. Membership is curated by the orchestrator from on-chain linkage (shared aggregators/feeders, see config/tracked_wallets.json notes).",
+  "max_operator_heat_pct": 6.0,
+  "clusters": {
+    "XTOKEN-MM": {
+      "members": ["BILL", "BSB", "EDEN", "LAB", "SKYAI", "OPN"],
+      "note": "Linked via XTOKEN-MM aggregator 0x1ab4973a (Bitget hot) + cross-cluster feeder 0xf89d7b — SKYAI 0xffa8 dumps to the same aggregator; operator was pumping OPN while distributing SKYAI (watchlist 2026-06 escalations)."
+    }
+  }
+}

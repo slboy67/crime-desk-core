@@ -1,0 +1,9 @@
+{
+  "_note": "SPEC-173 §7 instrument-type exclusion: stock/ETF/index perps are not desk instruments (crime-coin low-float micro-caps only). Ticker match is case-insensitive, exact (post USDT-strip). Edit freely — the scan modes reload this file every run.",
+  "tickers": [
+    "KORU", "SOXL", "SOXS", "TSLL", "TSLQ", "MSTU", "MSTX",
+    "MSTR", "NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "META", "COIN",
+    "XAU", "XAG", "SPX", "SPX500", "US30", "US100", "NDX", "DJI",
+    "GOLD", "SILVER", "OIL", "WTI"
+  ]
+}

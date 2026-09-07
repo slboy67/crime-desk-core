@@ -1,0 +1,47 @@
+{
+  "_source": "manual seed — top BSC/ETH bridge contracts (SPEC-116)",
+  "_built": "2026-07-08",
+  "_note": "Third trace_tree identity-terminal: a hop into one of these is a bridge, not another fresh wallet — the trail continues on another chain, never recursed here. Desk-editable; an unseeded bridge just degrades to pre-SPEC-116 behavior (recursed like any unknown wallet).",
+  "bridges": {
+    "0x3ee18b2214aff97000d974cf647e7c347e8fa585": {
+      "name": "Wormhole Portal Token Bridge (ETH)",
+      "trail_continues": ["unknown"]
+    },
+    "0x98f3c9e6e3face36baad05fe09d375ef1464288b": {
+      "name": "Wormhole Portal Token Bridge (BSC)",
+      "trail_continues": ["eth"]
+    },
+    "0x8731d54e9d02c286767d56ac03e8037c07e01e98": {
+      "name": "Stargate/LayerZero Router (ETH)",
+      "trail_continues": ["bsc", "arbitrum", "polygon"]
+    },
+    "0x4a364f8c717caad9a442737eb7b8a55cc6cf18d8": {
+      "name": "Stargate/LayerZero Router (BSC)",
+      "trail_continues": ["eth", "arbitrum", "polygon"]
+    },
+    "0xdd90e5e87a2081dcf0391920868ebc2ffb81a1af": {
+      "name": "Celer cBridge (ETH)",
+      "trail_continues": ["bsc"]
+    },
+    "0xdf3f72be10d194b58b1bb56f2c4183e621fcb736": {
+      "name": "Celer cBridge (BSC)",
+      "trail_continues": ["eth"]
+    },
+    "0x4f39c3319c611f24f1a5c15fef8ce54eba2a6a29": {
+      "name": "Axelar Gateway (BSC)",
+      "trail_continues": ["unknown"]
+    },
+    "0x99c9fc46f92e8a1c0dec1b1747d010903e884be1": {
+      "name": "Multichain/Anyswap Router (BSC)",
+      "trail_continues": ["unknown"]
+    },
+    "0xf261b9309d6e7a3fc4bcbf1dcf95ba7b3e733eda": {
+      "name": "deBridge Gate (BSC)",
+      "trail_continues": ["eth"]
+    },
+    "0x3154cf16ccdb4c6d922629664174b904d80f2c35": {
+      "name": "BSC Token Hub (canonical BNB-chain bridge)",
+      "trail_continues": ["bsc-beacon"]
+    }
+  }
+}

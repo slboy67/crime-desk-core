@@ -1,0 +1,11 @@
+{
+  "_doc": "SPEC 41 (size.py) — tier-1 leverage-bracket notional caps in USDT. The Binance bracket API (GET /fapi/v1/leverageBracket) is auth-gated, so this config is the source of truth; values below are conservative micro-cap-perp defaults. OVERRIDE PATH: when the real tier-1 bracket is known (venue UI → leverage & margin table → tier 1 max notional), set it per ticker under 'overrides' (ticker → tier-1 notional USD) — overrides win over venue defaults. size.py emits bracket_cap_usd = 70% of tier-1 (§7 reduce-only trap).",
+  "default_tier1_usd": 50000,
+  "venues": {
+    "aster": 50000,
+    "binance": 50000,
+    "bybit": 50000,
+    "bitget": 50000
+  },
+  "overrides": {}
+}

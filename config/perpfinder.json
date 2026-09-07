@@ -1,0 +1,4 @@
+{
+ "_doc": "SPEC-151 perpfinder (capabilities/perpfinder.py). cache_ttl_s: how long a GET response is served from state/perpfinder_cache.json before refetching — rate-limit citizenship against PerpFinder's documented 40/min (funding/oi/volume) and 30/min (slippage) caps, which are not observable from response headers.",
+ "cache_ttl_s": 120
+}

@@ -1,0 +1,9 @@
+{
+ "_doc": "SPEC-152 Blockscout adapter (capabilities/onchain.py, _p_blockscout / blockscout_cross_check). chain -> Etherscan-compatible Blockscout API base URL. Live-verified 2026-08-20: eth.blockscout.com and base.blockscout.com answer keyless with an Etherscan-compatible {status,message,result} body. bsc.blockscout.com is 404 (no official instance) and blockscout.com/bsc/mainnet is 503 (dead) — do NOT add an unofficial community BSC instance here without live-verifying it first (feedback_live_verify_vendor_api_tiers_before_spec). Add a new chain here only after a real curl confirms HTTP 200 + the same envelope. SPEC-192 #3 (2026-09-02): arbitrum.blockscout.com/polygon.blockscout.com/explorer.hemi.xyz answer directly; optimism.blockscout.com 301-redirects to explorer.optimism.io, so that chain points straight at the canonical instance to skip the extra hop. This file OVERRIDES capabilities/onchain.py's _BLOCKSCOUT_DEFAULT_INSTANCES entirely when present (_blockscout_instances() reads this file first) — a chain added to the Python default but not here is NOT actually used.",
+ "ethereum": "https://eth.blockscout.com/api",
+ "base": "https://base.blockscout.com/api",
+ "arbitrum-one": "https://arbitrum.blockscout.com/api",
+ "optimistic-ethereum": "https://explorer.optimism.io/api",
+ "polygon-pos": "https://polygon.blockscout.com/api",
+ "hemi": "https://explorer.hemi.xyz/api"
+}

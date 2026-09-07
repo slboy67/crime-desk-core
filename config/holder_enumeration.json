@@ -1,0 +1,5 @@
+{
+ "_doc": "SPEC-101 holder-enumeration provider seam (capabilities/onchain.py::enumerate_holders). Any key here overrides the documented default in _HOLDER_CFG_DEFAULTS. cache_ttl_h: holder lists change slowly, cache a live Bitquery read this long before re-querying. daily_budget: the Bitquery per-provider call budget (provider_quota.py; also env-overridable via BITQUERY_DAILY_BUDGET) — 800 keeps headroom under the ~1k/day free-tier ceiling.",
+ "cache_ttl_h": 6,
+ "daily_budget": 800
+}

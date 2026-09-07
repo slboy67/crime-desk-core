@@ -1,0 +1,14 @@
+{
+ "_doc": "SPEC-98 rotation-aware distribution freshness thresholds. Any key here overrides the documented default in capabilities/rotation_freshness.py DEFAULT_CFG. fresh_window_h: tracked outflow within this = FRESH. tape_leg_min_bars/tape_leg_min_move_pct: a dump leg = a run of >= min_bars consecutive longs_closing bars with net move <= -min_move_pct; tape_min_legs of those = rotation evidence. onchain_*: fresh-wallet fingerprint (young nonce), count and size gates for the fresh-wallet->CEX leg; onchain_max_channels bounds the provider reads. board_max_age_h: persisted verdict older than this is stale and not echoed on the board.",
+ "fresh_window_h": 12,
+ "tape_leg_min_bars": 3,
+ "tape_leg_min_move_pct": 0.5,
+ "tape_min_legs": 2,
+ "onchain_days": 2,
+ "onchain_young_nonce_max": 50,
+ "onchain_min_fresh_wallets": 2,
+ "onchain_min_usd": 100000,
+ "onchain_min_pct_float": 0.5,
+ "onchain_max_channels": 3,
+ "board_max_age_h": 24
+}

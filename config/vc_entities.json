@@ -1,0 +1,77 @@
+{
+  "_notes": "Cross-token VC/institutional entity wallets watched for crime-pump-relevant signal. Focus: DWF Labs (proven crime apparatus, ran ESPORTS), FROGGIE arbitrageurs (cross-venue spread detection), IOSG (VC distribution \u2014 lower-priority for crime edge but tracked). Wintermute dropped 2026-05-26 (eth-labels + Arkham top_address both returned dormant wallets; legit-MM not crime-pump anyway). XTOKEN-MM cluster IS Bitget/KuCoin hot wallets (per Arkham lookup) \u2014 those are in tracked_wallets.json per-token, not duplicated here.",
+  "_spec92": "REMOVED 2026-06-30 the CROSS-CAT-A-ESCROW-0x73d8bd54 nonce_any/critical monitor — 0x73d8bd54 is Binance exchange wallet-proxy infra (9.8M+ txs), not an operator escrow. A Binance proxy trips nonce_any constantly = pure noise reading as Stage-5 escalation. See SPEC-92 / reference_cross_cat_a_escrow_0x73d8bd54 (DISPROVEN).",
+  "entities": [
+    {
+      "label": "VC-IOSG",
+      "address": "0xfa9389e80Cd9dd9b0B429287Fd4D1d08185FEB58",
+      "chain": "ethereum",
+      "type": "vc_fund",
+      "_note": "IOSG Ventures \u2014 confirmed 2026-05-26 deposited $2M+ COMP and $9M+ UNI to CEX, both tokens dumped -7%/-3% same day. Multi-token forward signal across VC's whole portfolio. Source: digest 2026-05-26. NOTE: nonce=2 as of 2026-05-26 baseline, may be a one-time-use distribution wallet (good VC OPSEC) \u2014 forward signal value on this specific address is uncertain."
+    },
+    {
+      "label": "ARB-FROGGIE-2",
+      "address": "0x5bff90cf40c92e2dca663654703ff568eb11d233",
+      "chain": "ethereum",
+      "type": "arbitrageur",
+      "alert_strategy": "cex_bound_only",
+      "_note": "Identified 2026-05-26 digest: FROGGIE Bitget\u2192DEX arbitrage cluster. Audit: ACTIVE (970 nonce, 31 tx/7d, 101 tx/30d). Captures cross-venue spreads \u2014 when active on a token, indicates a tradeable price differential. alert_strategy: cex_bound_only (the actionable signal is when they send to CEX after DEX accumulation)."
+    },
+    {
+      "label": "ARB-FROGGIE-4",
+      "address": "0xa65be561e6dd17f333f6750e6dc2ecb79c8d525e",
+      "chain": "ethereum",
+      "type": "arbitrageur",
+      "alert_strategy": "cex_bound_only",
+      "_note": "Identified 2026-05-26 digest: FROGGIE Bitget\u2192DEX arbitrage cluster. Audit: highly ACTIVE (4487 nonce, 93 tx/7d, 415 tx/30d) \u2014 heaviest arber of the group. Strong cross-venue spread detection signal."
+    },
+    {
+      "label": "VC-IOSG-HOT-WALLET",
+      "address": "0x5bdf85216ec1e38d6458c870992a69e38e03f7ef",
+      "chain": "ethereum",
+      "type": "vc_fund",
+      "alert_strategy": "cex_bound_only",
+      "_note": "Discovered 2026-05-26 via Arkham entity page (intel.arkm.com/explorer/entity/iosg-ventures). Labeled 'Hot Wallet (0x5bd)' by Arkham. Audit: HIGHLY ACTIVE \u2014 611,782 nonce, 2,878 tx/7d, 11,056 tx/30d = IOSG's primary treasury/MM hot wallet. This is the REAL active IOSG wallet (vs the digest's 0xfa93 one-time-use distribution wallet). cex_bound_only filter so the watcher only fires on actionable CEX deposits, silent on internal cycling."
+    },
+    {
+      "label": "VC-IOSG-A",
+      "address": "0x9be7805166b37c3cd1fbd95d251b32eeb833cb91",
+      "chain": "ethereum",
+      "type": "vc_fund",
+      "alert_strategy": "nonce_any",
+      "_note": "Discovered 2026-05-26 via Arkham (iosg-ventures entity page, top by interaction count). Audit: ACTIVE (257 nonce, 1 tx/7d, 4 tx/30d) \u2014 low-frequency wallet, every tick is significant. nonce_any strategy."
+    },
+    {
+      "label": "VC-IOSG-B",
+      "address": "0x441d0d3a7b82d46151fe54046202760e6d457f14",
+      "chain": "ethereum",
+      "type": "vc_fund",
+      "alert_strategy": "nonce_any",
+      "_note": "Discovered 2026-05-26 via Arkham (iosg-ventures entity page, displayed with full bare hex = likely IOSG-owned without sub-label). Audit: ACTIVE (19 nonce, 1 tx/7d, 4 tx/30d) \u2014 relatively new IOSG wallet, every tick significant."
+    },
+    {
+      "label": "MM-DWF-PRIMARY",
+      "address": "0x53c902a9ef069f3b85e5e71f918c4d582f3063fa",
+      "chain": "ethereum",
+      "type": "market_maker",
+      "alert_strategy": "nonce_any",
+      "_note": "Discovered 2026-05-26 via Arkham (dwf-labs entity page, displayed as '(0x53c)' \u2014 top by interaction count = primary DWF address). Audit: ACTIVE (7,566 nonce, 20 tx/7d, 51 tx/30d). DWF is the MM apparatus behind ESPORTS cascade (2026-05-26, team netted $15M+). Moderate activity = every tick is actionable. nonce_any strategy."
+    },
+    {
+      "label": "MM-DWF-SECONDARY",
+      "address": "0xdfcddaafe55fe6e8102986e220daf25ad03edd57",
+      "chain": "ethereum",
+      "type": "market_maker",
+      "alert_strategy": "nonce_any",
+      "_note": "Discovered 2026-05-26 via Arkham (dwf-labs entity page, displayed as '(0xDfc)' \u2014 tied for top by interaction count). Audit: ACTIVE (5,642 nonce, 18 tx/7d, 43 tx/30d). DWF secondary MM wallet. Pair with DWF-PRIMARY for full apparatus coverage."
+    },
+    {
+      "label": "MM-DWF-TERTIARY",
+      "address": "0x1c781f4842ca95313c55289438e5c4610abd7296",
+      "chain": "ethereum",
+      "type": "market_maker",
+      "alert_strategy": "nonce_any",
+      "_note": "Discovered 2026-05-26 via Arkham (dwf-labs entity page, bare hex label). Audit: ACTIVE (433 nonce, 1 tx/7d, 8 tx/30d). DWF tertiary wallet \u2014 less frequent but still active. nonce_any to catch all ticks."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+ "_doc": "SPEC-120 faded-bounce discovery mode thresholds. Any key here overrides the documented default in capabilities/scan.py FADED_BOUNCE_DEFAULTS. off_ath_pct/bounce_pct/bounce_window_days: the pump is over + there's a bounce to fade. vol_slope_recent_days/vol_slope_prior_days/vol_slope_max_ratio (SPEC-138): 'faded' = recent daily-volume mean flat-or-declining vs the prior window, NOT %-of-90d-peak (that false-passed active squeezers whose volume was rising hard next to a bigger historical spike). vol_floor_m: still tradable. funding_floor_4h: SPEC-108 most-extreme non-floor print >= this (deep-neg below = hard exclude, §5). chronic_squeeze_legs_60d (SPEC-138): don't hand the user a chronic squeezer (CLAUDE §6: >1 leg/~10d over 60d) — subsumes the old squeeze_leg_pct/squeeze_window_h pair. top: candidate cap.",
+ "off_ath_pct": 40.0,
+ "bounce_pct": 15.0,
+ "bounce_window_days": 7,
+ "vol_slope_recent_days": 3,
+ "vol_slope_prior_days": 3,
+ "vol_slope_max_ratio": 1.10,
+ "vol_floor_m": 5.0,
+ "funding_floor_4h": -0.10,
+ "chronic_squeeze_legs_60d": 6,
+ "top": 5
+}

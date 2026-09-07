@@ -1,0 +1,12 @@
+{
+ "_note": "SPEC-169: orchestrator-editable sizing knobs consumed by capabilities/risk_card.py. risk_pct_by_tier is the §9 risk-at-stop unit (% of equity) by ledger tier; cluster_heat_pct is the §7 combined-operator-risk cap (moved here from config/positions.json's max_operator_heat_pct); exit_slippage_pct is the band maxsize.py walks on the EXIT side for the exit-absorbable figure on the card line. SPEC-173: min_aster_exit_usd is the scan-mode Aster execution gate floor (notional within aster_exit_band_pct of mid, on the entry side) — below it a candidate is excluded:aster_book.",
+ "risk_pct_by_tier": {
+  "hypothesis": 5,
+  "go": 10,
+  "demoted": 5
+ },
+ "cluster_heat_pct": 6,
+ "exit_slippage_pct": 0.5,
+ "min_aster_exit_usd": 10000,
+ "aster_exit_band_pct": 2.0
+}

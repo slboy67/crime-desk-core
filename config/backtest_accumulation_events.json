@@ -1,0 +1,42 @@
+{
+  "_doc": "SPEC-100 manual event feed for capabilities/backtest_accumulation.py — desk-verified accumulation cases sourced from memory (GOAL-close-gaps.md G1 / SPEC-76). `signal_date` is the desk's best-effort reconstruction of the FIRST accumulation signal, not a precisely on-chain-dated timestamp (date_confidence flags this) — the historical-replay feed (source_historical_events) is the precise measurement once wallet+contract pairs are enumerable. This file exists so the §9 backtest runs even before wide enumeration is affordable; it does NOT by itself clear the n>=10 gate.",
+  "sourced_ts": "2026-07-02",
+  "events": [
+    {
+      "token": "SIREN",
+      "wallet": "controller-cluster",
+      "cluster": "SIREN-controllers",
+      "signal_date": "2026-03-01T00:00:00.000Z",
+      "date_confidence": "approximate-desk-memory",
+      "source": "manual",
+      "detail": "SIREN chip-control case (memory: reference_siren_chipcontrol_case): low accum ~$0.045 -> 26x -> aggregated to 48 addrs (88.5% per Ember) -> cash out 64.8M USDT. Controller wallets = the seed set validating the accumulation-radar long edge (SPEC-76)."
+    },
+    {
+      "token": "XPIN",
+      "wallet": "10-wallet-cex-withdrawal-set",
+      "cluster": null,
+      "signal_date": "2026-06-01T00:00:00.000Z",
+      "date_confidence": "approximate-desk-memory",
+      "source": "manual",
+      "detail": "CT '10 wallets accumulated 2.26B XPIN' verified on-chain = 10 clean CEX withdrawals (9 Gate + 1 Binance-infra), all holding, 0 distributed (memory: reference_xpin_cat_a_lock_linked_accumulation)."
+    },
+    {
+      "token": "SKYAI",
+      "wallet": "0xadfffc33",
+      "cluster": "0xaDFffc33",
+      "signal_date": "2026-05-01T00:00:00.000Z",
+      "date_confidence": "approximate-desk-memory",
+      "source": "manual",
+      "detail": "0xaDFffc33 cluster accumulator (memory: reference_cluster_accumulator_0xadfffc33): pulls lowcaps from Bitget 6, never sells; verified 2026-06-26 holding 14.83% SKYAI ($48M) pure-accumulation."
+    },
+    {
+      "token": "COLLECT",
+      "wallet": "0xadfffc33",
+      "cluster": "0xaDFffc33",
+      "signal_date": "2026-05-20T00:00:00.000Z",
+      "date_confidence": "approximate-desk-memory",
+      "source": "manual",
+      "detail": "Same 0xaDFffc33 accumulator, second name in the cluster: 128.75M COLLECT ($5.8M) pure-accumulation, verified 2026-06-26. Hypothesis-tier per memory (COLLECT is thin/DUST) — kept for the co-cascade correlation read, not sized on its own."
+    }
+  ]
+}

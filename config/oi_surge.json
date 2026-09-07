@@ -1,0 +1,10 @@
+{
+ "_doc": "SPEC-148 oi_surge discovery-net thresholds. Any key here overrides the documented default in capabilities/scan.py OI_SURGE_DEFAULTS. oi_surge_pct: cross-venue summed OI delta vs the persisted baseline (state/oi_surge_baseline.json) required to fire, only compared when that ticker's baseline is <= baseline_max_age_h old. vol_oi_ratio_min: 24h vol / OI (the §2 Cat-A brushing tell). funding_extreme_thresh_4h: |most-extreme non-floor cross-venue print| (SPEC-108/112 selection) required to count as a firing flag. SPEC-173: the liquidity floor is now the hard §7 gate shared by every scan mode (scan.liquidity_gate: <$10M excluded, $10-25M tagged scout) — no separate config knob. top: candidate cap. exclude: static majors/top-MC list — the desk hunts micro-caps, never these.",
+ "oi_surge_pct": 40.0,
+ "vol_oi_ratio_min": 20.0,
+ "funding_extreme_thresh_4h": 0.20,
+ "baseline_max_age_h": 24.0,
+ "top": 10,
+ "exclude": ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "TRX",
+             "LINK", "DOT", "MATIC", "LTC", "SHIB", "TON", "SUI", "NEAR", "USDT", "USDC"]
+}

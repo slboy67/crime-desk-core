@@ -1,0 +1,1190 @@
+{
+ "_doc": "Capability registry for orchestrator.py. Each entry: {invoke, filter (null=clean JSON / name=filters/<name>.py), status, desc, timeout?, contract{in,out}, test, doc}. invoke placeholders: bare {key} filled from args (missing\u2192''); optional group [--flag {key}] kept only when key present, dropped otherwise (for flag+value pairs). 'native' = ported into capabilities/ reading crime-desk/config. 'delegated' = calls _oldrepo parts bin (clean --json, or via a filter) until natively ported. See ARCHITECTURE.md + handoffs/ + docs/orchestrator.md.",
+ "ledger": {
+  "invoke": "python3 capabilities/ledger.py {action} [--ticker {ticker}] [--direction {direction}] [--signature {signature}] [--allow-new {allow_new}] [--entry {entry}] [--stop {stop}] [--tp \"{tp}\"] [--outcome {outcome}] [--pnl-r {pnl_r}] [--commit-ts {commit_ts}] [--close-ts {close_ts}] [--notes \"{notes}\"] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC 40 \u2014 per-signature outcome scoreboard. action=record|stats|backfill|migrate-spec69|migrate-spec90|migrate-spec110|migrate-watch. stats flags sizeable only at n>=10 AND hit%>50 AND total_r>0 (the \u00a79 base-rate gate). Every thesis retire (\u00a70.5 BREAKS) ends with one record call. SPEC 63: rows carry source (live/replay/backfill); stats adds by_source split (n/hit%/avg_r/total_r per source) and judges sizeable on LIVE rows only. canon_signature also maps the SPEC-59 setup keys. SPEC-110: signature taxonomy now admits unlock_cliff_fade/spring_reclaim_long; an unrecognized --signature fails loudly (unknown set + known list) unless --allow-new persists it verbatim. SPEC-172: --allow-new is now VERBATIM (no heuristic pass at all), and any *_watch signature (or direction=WATCH) is never heuristic-mapped into a trade signature \u2014 stats splits these into a `watch` bucket excluded from every trade aggregate; migrate-watch re-tags already-corrupted rows.",
+  "contract": {
+   "in": {
+    "action": "str (record|stats|backfill|migrate-spec69|migrate-spec90|migrate-spec110|migrate-watch)",
+    "ticker": "str? (record)",
+    "direction": "str?",
+    "signature": "str? (enum incl. unlock_cliff_fade/spring_reclaim_long, SPEC-59 setup keys, or free-form \u2014 canonicalized; unknown fails loudly unless allow_new)",
+    "allow_new": "bool? (record \u2014 SPEC-110: persist an unrecognized --signature verbatim)",
+    "entry": "float? (record)",
+    "stop": "float? (record)",
+    "tp": "str? (record \u2014 comma-separated TP levels, e.g. 0.30,0.184)",
+    "outcome": "str? (stopped|tp1|tp2|retired_unfilled|zone_blown)",
+    "pnl_r": "float? (null=signal-only)",
+    "commit_ts": "str?",
+    "close_ts": "str?",
+    "notes": "str?"
+   },
+   "out": {
+    "record": "{recorded, record}",
+    "stats": "{signatures:{sig:{n,hit_pct,avg_r,total_r,by_source{live/replay/backfill:{n,hit_pct,avg_r,total_r}},last_5,sizeable}}, watch:{sig:{n,tickers}} (SPEC-172: WATCH-tier rows, excluded from every trade aggregate)} or one row+records",
+    "backfill": "{seeded, tickers}",
+    "migrate-spec110": "{migrated: int}",
+    "migrate-watch": "{dry_run: bool, mistagged: [{ticker,from,to}]}"
+   }
+  },
+  "test": "tests/test_ledger.py",
+  "doc": "docs/ledger.md"
+ },
+ "inbox": {
+  "invoke": "python3 capabilities/inbox.py [--op {op}] [--through-ts {through_ts}] [--ticker {ticker}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC 45 \u2014 surveillance event inbox. op=list (default) returns unconsumed events from state/nonce_alerts.log + state/inbox_events.jsonl; op=ack --through-ts advances the atomic cursor. classify rows carry per-ticker {n,max_severity}; verdicts are NEVER overridden (\u00a70.5).",
+  "contract": {
+   "in": {
+    "op": "str? (list|ack, default list)",
+    "through_ts": "str? (ISO, required for ack)",
+    "ticker": "str? (filter to one ticker)"
+   },
+   "out": {
+    "list": "{unconsumed:[{ts,ticker,source,severity,msg}], n}",
+    "ack": "{acked_through, remaining}",
+    "ticker": "{n, max_severity, events}"
+   }
+  },
+  "test": "tests/test_inbox.py",
+  "doc": "docs/inbox.md"
+ },
+ "onboard": {
+  "invoke": "python3 capabilities/onboard.py [{ticker}] [--all {all}] [--chain {chain}] [--coingecko-id {coingecko_id}] [--contract {contract}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 120,
+  "desc": "SPEC 47 \u2014 config-driven token onboarding. Resolves the coingecko id (SPEC 36 collision-safe), writes the tracked_wallets skeleton, pulls GoPlus top holders as tier:'unclassified' CANDIDATES (hard guard: excluded from radar seeding until the Designer tiers them via needs_judgment), seeds the nonce baseline. Idempotent: tracked tokens get a report-only read. SPEC 52: explicit coingecko_id bypasses symbol search; failures are stage-named (resolve_ambiguous+candidates / resolve_not_found / contract_fetch_failed / goplus_failed / baseline_failed). SPEC 51: '{\"all\":true}' sweeps every unmapped watchlist name (set-difference first; per-token failure never aborts). SPEC-165: an explicit `contract` (+ required `chain`) skips CoinGecko entirely \u2014 RPC-only identity (name/decimals/totalSupply) + GoPlus holders, for fresh BSC->Alpha names with no CoinGecko entry on day one.",
+  "contract": {
+   "in": {
+    "ticker": "str",
+    "chain": "str? (bsc|eth|base|\u2026 restrict to one chain)",
+    "coingecko_id": "str? (explicit id \u2014 collision override, skips search)",
+    "all": "bool? (sweep mode: onboard all unmapped watchlist names)",
+    "contract": "str? (SPEC-165: explicit 0x.. contract \u2014 skips CoinGecko, requires chain)"
+   },
+   "out": {
+    "new": "{ok, ticker, cg_id, low_confidence, contracts, candidates_written, needs_judgment:[{address,balance_pct,hints}], baseline_seeded}",
+    "tracked": "{ok, already_tracked:true, contracts, wallets, tiers, needs_judgment, baseline_seeded}",
+    "sweep": "{ok, swept, mapped:[...], failed:[...], results:[{ticker,status,reason,candidates,needs_judgment}]}",
+    "by_contract": "{ok, ticker, onboarded_by:\"contract\", contracts, primary_chain, token_meta:{name,decimals,total_supply,meta_available}, candidates_written, needs_judgment, baseline_seeded}"
+   }
+  },
+  "test": "tests/test_onboard.py",
+  "doc": "docs/onboard.md"
+ },
+ "thesis": {
+  "invoke": "python3 capabilities/thesis.py --op {op} --ticker {ticker} [--thesis {thesis}] [--reason \"{reason}\"] [--outcome {outcome}] [--pnl-r {pnl_r}] [--exit-px {exit_px}] [--signature {signature}] [--confirm-signature] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC 48 \u2014 schema-validated \u00a70.5 thesis lifecycle. op=commit validates the contract (rejects a commit with NO named invalidation) and stamps committed_ts/by; op=close|retire moves tokens\u2192retired AND appends the outcome row to the SPEC-40 ledger (the \u00a79 base-rate gate accumulates automatically). Atomic + lock-guarded watchlist writes. SPEC 63: commit takes an optional signature (SPEC-59 setup keys + discretionary); close takes exit_px -> mechanical pnl_r (entry_zone mid + stop; tp1/tp2 without exit_px estimated from the committed TP, flagged), and resolves the row signature without guessing (committed -> explicit -> inferred-only-if-confirm_signature -> else discretionary).",
+  "contract": {
+   "in": {
+    "op": "str (commit|close|retire)",
+    "ticker": "str",
+    "thesis": "object (commit: direction, entry_zone, stop, tp, triggers[], invalidation{}, time_stop_h, setup?, signature?)",
+    "reason": "str? (close/retire)",
+    "outcome": "str? (ledger enum; retire defaults retired_unfilled)",
+    "pnl_r": "float?",
+    "exit_px": "float? (close) \u2014 mechanical pnl_r",
+    "signature": "str? \u2014 SPEC-59 setup key + discretionary",
+    "confirm_signature": "flag? \u2014 write the inferred signature on a no-signature close"
+   },
+   "out": {
+    "commit": "{ok, ticker, op, thesis, warnings, commit_warning, geometry_warning (SPEC 61 \u2014 committed stop inside the full-history true-wick stop)}",
+    "close/retire": "{ok, ticker, op, ledger_row, pnl_r, pnl_r_estimated, signature, signature_source, suggested_signature}"
+   }
+  },
+  "test": "tests/test_thesis.py",
+  "doc": "docs/thesis.md"
+ },
+ "size": {
+  "invoke": "python3 capabilities/size.py {ticker} --direction {direction} --entry {entry} --stop {stop} [--equity {equity}] [--band {band}] [--mc {mc}] [--propose-stop] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "SPEC 41 \u2014 mechanical \u00a77 sizing gate: liquidity gate FIRST (AUTO-PASS <$10M vol/<$15M MC short-circuits; SCOUT-ONLY $10-25M = 50% final-size haircut), then size-to-exit ($ within band% of mid on the EXIT side across BOTH venue books \u2014 SHORT exits into bids, LONG into asks; truncated side = floor estimate \u00d70.5), OI cap 3%, bracket cap 70% tier-1 (config/brackets.json), leverage 1/stop-distance (practical 75%, haircut_dex_mark >30% DEX mark-weight), operator-cluster heat (config/clusters.json). Emits every constraint + which binds; max_size_usd ONLY when equity passed. Read-only. SPEC 61: --propose-stop returns stop_proposal (beyond the TRUE wick = max(24h extreme, full-history window extreme) + magnet-aware buffer, never AT a round; names cleared_wick/source) + entry_type_required:post_breakdown on chronic squeezers (>1 leg/10d) with a retest-zone warning.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "direction": "str (LONG|SHORT, required)",
+    "entry": "float (required)",
+    "stop": "float (required)",
+    "equity": "float? \u2014 account $ ; only then max_size_usd emitted",
+    "band": "float? \u2014 exit-liquidity band % of mid (default 2.0)",
+    "mc": "float? \u2014 market cap $ for the gate",
+    "propose_stop": "flag? \u2014 SPEC 61 true-wick stop proposal + entry-type guard"
+   },
+   "out": {
+    "gate": "AUTO-PASS|SCOUT-ONLY|FULL",
+    "gate_detail": "{vol_m_24h,mc_usd}",
+    "exit_side": "bid|ask",
+    "exit_detail": "{venue:{usd_within_band,truncated,haircut,usd_counted}}",
+    "constraints": "{exit_absorbable_usd,oi_cap_usd,bracket_cap_usd,leverage_max,leverage_practical,leverage_cap_usd?,cluster{name,members,open_members,cluster_open_risk_warning,max_operator_heat_pct}} | null on AUTO-PASS",
+    "binding": "exit_absorbable|oi_cap|bracket_cap|leverage_cap|null",
+    "max_size_usd": "float? \u2014 only with equity (min of $ caps \u00d7 scout haircut)",
+    "haircut_dex_mark": "bool",
+    "stop_distance_pct": "float",
+    "notes": "list[str]",
+    "stop_proposal": "{stop_proposed,cleared_wick,cleared_source(24h_extreme|window_full_history),buffer_pct,magnet_adjusted,entry_guard{chronic_squeezer,entry_type_required,warning}} \u2014 only with --propose-stop",
+    "entry_type_required": "post_breakdown? \u2014 chronic-squeezer guard (only with --propose-stop)"
+   }
+  },
+  "test": "tests/test_size.py",
+  "doc": "docs/size.md"
+ },
+ "maxsize": {
+  "invoke": "python3 capabilities/maxsize.py {ticker} [--side {side}] [--leg {leg}] [--bps {bps}] [--size {size}] [--venue {venue}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC-87 \u2014 pre-trade max-clean-size + slippage curve + venue routing (the execution-microstructure layer under size.py \u00a77). Reuses depth.py's book fetchers (aster/bitget/binance + hyperliquid); walks the correct side (LONG entry / SHORT exit \u2192 buy ASKS; SHORT entry / LONG exit \u2192 sell BIDS), computes max_clean_usd = max notional fillable within --bps of mid (VWAP slippage, default 25), a $100\u201310k slippage ladder (realized bps + walks-to price), depth within 1%, and a truncation flag (book ends inside the band \u2192 clean-size is a FLOOR, defer to live DOM \u2014 never false capacity). Routing recommendation: cheapest self-custody/EXECUTABLE venue (aster/hyperliquid) for the requested --size (or largest clean ceiling), with a clip schedule when target > ceiling; binance/bitget tagged signal-only. Read-only intel \u2014 NO auto-verdict. Carries the calm-snapshot + calm-vs-flush (exit liquidity in a cascade is a fraction of this) + oracle-mark caveats (liq marked off the oracle, not this book \u2014 \u00a77).",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "side": "str (long|short, default long)",
+    "leg": "str (entry|exit, default entry)",
+    "bps": "float? \u2014 slippage band, default 25",
+    "size": "float? \u2014 target notional USD for routing/clip schedule",
+    "venue": "str? (aster|bitget|binance|hyperliquid \u2014 restrict to one)"
+   },
+   "out": {
+    "ticker": "str",
+    "action": "buy|sell",
+    "walked_side": "ask|bid",
+    "venues": "obj{venue:{executable,custody,walked_side,mid,spread_bps,max_clean_usd,clean_ceiling_truncated,depth_within_1pct_usd,ladder[{target_usd,filled_usd,realized_bps,walks_to,exhausted}],truncated,deepest_level_seen}}",
+    "recommendation": "{route_to,executable,clean_ceiling_usd,basis,deepest_venue_overall,clip_schedule{clips,clip_usd,note}|null,self_custody_constrained,note?,warning?} | null",
+    "snapshot_caveat": "str",
+    "calm_vs_flush": "str",
+    "oracle_mark_note": "str"
+   }
+  },
+  "test": "tests/test_maxsize.py",
+  "doc": "docs/maxsize.md"
+ },
+ "cvd": {
+  "invoke": "python3 capabilities/cvd.py {ticker} [--min {min}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "SPEC 42 \u2014 spot-vs-perp CVD divergence with REAL spot-venue resolution: primary spot venue by 24h volume (Binance \u2194 Bitget, then GeckoTerminal DEX pools via the tracked contract); spot CVD from THAT venue (Binance klines taker-buy fields / Bitget fills / GT trades with a declared taker-side heuristic), perp CVD from Binance futures klines (parity with the proven divergence math). Degrade-EXPLICIT: no spot anywhere \u2192 verdict UNAVAILABLE + spot_coverage none \u2014 analyse reads the \u00a74 CVD leg as UNKNOWN, never a silent fail-the-gate.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "min": "int? \u2014 CVD window minutes (default 30)"
+   },
+   "out": {
+    "ticker": "str",
+    "verdict": "BULLISH_DIVERGENCE|BEARISH_DIVERGENCE|ALIGNED_BULLISH|ALIGNED_BEARISH|SPOT_REAL_WINDOW_THIN|UNRELIABLE_THIN_SPOT|UNRELIABLE_PERP_DRIVEN|NO_DATA|UNAVAILABLE",
+    "spot_venue": "binance|bitget|dex:<network>|null",
+    "spot_vol_24h_usd": "int|null",
+    "spot_coverage": "full|partial|none",
+    "spot_cvd": "int|null",
+    "perp_cvd": "int|null",
+    "spot_tot": "int?",
+    "perp_tot": "int?",
+    "reliable": "bool",
+    "low_confidence": "bool?",
+    "taker_side_heuristic": "str (DEX reads only \u2014 kind==taker side, declared)",
+    "note": "str? (explicit degrade reason)"
+   }
+  },
+  "test": "tests/test_cvd_venue.py",
+  "doc": "docs/cvd.md"
+ },
+ "stake_schedule": {
+  "invoke": "python3 capabilities/stake_schedule.py {contract} [--chain {chain}] [--token {token}] [--window {window}] [--catalyst {catalyst}] [--float-supply {float_supply}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 120,
+  "desc": "SPEC 43 \u2014 unlock cliffs + catalysts from a staking/lock contract (RIVER methodology, ported from parts bin): chunked event-log scan over the window, primary event by topic[0] frequency, heuristic amount/endTime decode, forward unlock schedule by ISO week, CLIFF dates >=5% of decoded locked supply, optional write to config/catalysts.json. Token-mode (--token) scans Transfer-from-vesting for passive contracts. The \u00a74 sub-pattern-B tell: lock contract + cliff ahead = vesting-hedge calendar; no lock contract = watch safe nonces instead. SPEC-165: any lock-mode call tries the UUPS unlock-escrow selector set FIRST (getUnlockSchedules()/getAvailableAmount()/withdrawnAmount()/startTime()) \u2014 decodes straight off it when present (mode:escrow, schedule_hash tripwire, mutable/owner_safes when owner-only setters exist on-chain), degrading to the event-log scan (with escrow_adapter_reason) when the selectors aren't there.",
+  "contract": {
+   "in": {
+    "contract": "str (required) \u2014 0x.. lock/vesting/escrow contract",
+    "chain": "str? (default bsc; bsc|ethereum|base|polygon|arbitrum|optimism, aliases bsc/bnb/eth/arb/op)",
+    "token": "str? \u2014 TOKEN-MODE: scan Transfer events on this token where from=contract",
+    "window": "int? \u2014 days to scan back (default 60)",
+    "catalyst": "str? \u2014 ticker: write cliffs to config/catalysts.json (deduped)",
+    "float_supply": "float? (SPEC-165) \u2014 escrow-mode cliffs are pct-of-float when given, else pct-of-decoded-locked-total"
+   },
+   "out": {
+    "contract": "str",
+    "chain": "str",
+    "mode": "lock|token|escrow",
+    "primary_event": "str|null (topic[0], or \"getUnlockSchedules()\" in escrow-mode)",
+    "locked_total": "float \u2014 decoded future unlocks (lock-mode) / current vesting balance (token-mode) / last cumulative step (escrow-mode)",
+    "schedule": "lock: list[{week,amount,pct_of_locked}] ISO-week buckets. escrow: list[{date,amount,pct}] per decoded step",
+    "cliffs": "list[{date,amount,pct}] \u2014 dates unlocking >=5% of the pct basis; [] clean on non-lock/non-escrow contracts",
+    "catalyst_written": "bool",
+    "schedule_hash": "str|absent \u2014 escrow-mode only, sha256(raw getUnlockSchedules() return)[:16], a changed schedule is itself the signal",
+    "mutable": "bool|absent \u2014 escrow-mode only, true when an owner-only setter (setUnlockSchedules/setStartTime/emergencyWithdraw/upgradeToAndCall) is present in the bytecode",
+    "mutators": "list[str]|absent \u2014 escrow-mode only, which owner-only setters were detected",
+    "owner_safes": "list[str]|absent \u2014 escrow-mode only, owner() when mutable",
+    "escrow_adapter_reason": "str|null \u2014 lock-mode only, why the escrow adapter didn't apply"
+   }
+  },
+  "test": "tests/test_stake_schedule.py",
+  "doc": "docs/stake_schedule.md"
+ },
+ "tape": {
+  "invoke": "python3 capabilities/tape.py {ticker} [--venue {venue}] [--window {window}] [--level {level}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC 31 \u2014 per-minute OI/price/taker/liquidation microstructure classifier: labels each candle into the four-force vocabulary (longs/shorts opening/closing) and flags operator staged-play sequences (fake-breakdown short-recruitment, chain-squeeze through a round number, tail-of-liquidation, downtrend slam). Read-only intel \u2014 NO auto-verdict.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "venue": "str? (default binance)",
+    "window": "int? \u2014 minutes (default 60)",
+    "level": "float? \u2014 support level for fake_breakdown_wick"
+   },
+   "out": {
+    "ticker": "str",
+    "venue": "str",
+    "oi_interval": "str (5m floor)",
+    "window_min": "int",
+    "bars": "list[{ts,price,d_price_pct,d_oi,oi_force,forced,taker_imb,liq_long_usd,liq_short_usd}]",
+    "patterns": "list[{type,bar_range,detail}]",
+    "round_numbers_near": "list[float]",
+    "liq_available": "bool",
+    "defended_fade": "obj{wall_growing,snapshots,last_wall_notional_usd,last_mid,stall_lower_high}|null (SPEC-83 wall-dynamics from the history brief records; null if no history yet)"
+   }
+  },
+  "test": "tests/test_tape.py",
+  "doc": "docs/tape.md",
+  "_note": "Operationalizes the operator-seat OI lens (memory feedback_read_oi_price_from_operator_seat) \u2014 the SKYAI 2026-06-06 miss (flat tape was short-recruitment; flush\u2192wick below 0.1836 then chain-squeeze through 0.20\u21920.2085). Deterministic candle classification (decision-tree=code); operator-INTENT judgment stays with the Designer (invariant 2). price+taker from 1m klines (taker-buy vol is in the kline \u2192 no raw-trade dump); \u0394OI floor is 5m (openInterestHist period=1m returns [] \u2192 oi_interval:5m, each 1m bar inherits its 5m bucket's \u0394OI, declared not pretended); liquidations via forceOrders are auth-gated on public REST \u2192 liq_available:false degrades-explicit (forced-vs-voluntary short-exit then undetermined; the split logic runs whenever a liq feed is supplied). Read-only \u2014 does NOT replace the \u00a75 funding-flip+OI-build short gate; pairs with oi_sides (coarse wash) as the fine-grained sequence underneath."
+ },
+ "brief": {
+  "invoke": "python3 capabilities/brief.py {ticker} [--venue {venue}] [--render {render}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 180,
+  "desc": "SPEC 30 \u2014 one-call full-stack token read: state (classify) + perp (analyse) + venue books (depth: Aster execution venue first, then bitget+binance cross-check \u2014 SPEC-85) + on-chain (onchain), fused into one envelope so a bare ticker never returns a chopped-up partial. The Designer's session-default on any ticker.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "venue": "str? \u2014 aster|bitget|binance; omit = all (Aster first)",
+    "render": "str? \u2014 full (default) | compact (SPEC-193: decision-only, ~<=3KB, reason UNTRUNCATED, drops raw bars/depth/kline payloads + meta.layer_ms)"
+   },
+   "out": {
+    "ticker": "str",
+    "state": "obj{available,verdict,reason,thesis_present,direction,thesis}",
+    "perp": "obj{available,verdict,direction,tier,funding_4h,funding_venue,oi_chg_pct,near_ath,cvd_verdict,price}",
+    "books": "obj{available,venues{venue:{available,mid,bid_shelf_below,ask_wall_above,truncated,deepest_level_seen}}}",
+    "onchain": "obj{available,signal,bias,score,newly_fired,staging_vs_execution,top_holder_distribution,distribution_checked,signal_caveat (SPEC-89),concentration{top1_pct,top10_pct,holder_count}}",
+    "defended_fade": "obj{available,mid,truncated,ask{price,notional_usd,wall_growing,snapshots,spoof_prone,verdict,add_triggers,geometry},bid{...}} (SPEC-83 wall-dynamics; records state/wall_history.json each run)",
+    "risk_card": "obj (SPEC-169: the \u00a79 risk-card line off the committed thesis geometry)",
+    "venue_bars": "obj{available,venues,n_total,n_available,bars,dominant_tape,execution_venue,tape_agreement} (SPEC-188: the all-venue 1h OHLC sweep, printed unconditionally; tape_agreement is one checklist line per committed thesis level any venue crossed)",
+    "headline": "str (SPEC-83: appends 'ask-wall GROWING ...' when the defended wall is thickening)",
+    "timed_out": "[str] (SPEC-172: component names that exceeded their own budget; every OTHER component still returns normally \u2014 never an empty error)",
+    "meta": "obj{layer_ms:{component:int}} (SPEC-172: wall-clock ms per component, timed out or not)"
+   }
+  },
+  "test": "tests/test_brief.py",
+  "doc": "docs/brief.md",
+  "_note": "Pure COMPOSITION over already-MERGED capabilities (classify/analyse/depth/onchain) \u2014 re-derives nothing, no new data sources. Layers run concurrently, each under its OWN wall-clock budget (SPEC-1b/SPEC-172): main-loop layers 90s, the post-loop batch (defended_fade/unlocks/venue_breadth/risk_card) its own smaller per-component budgets. Each section degrade-explicit (available:false+reason, never silent null, never a crash that loses the other layers) and a timed-out one is named in `timed_out` \u2014 never a silent full-call timeout (SPEC-172: a `with ThreadPoolExecutor` block's blocking shutdown was quietly re-imposing an abandoned thread's hang on the whole call; fixed via `_bounded()`, shutdown(wait=False)). venue omitted = BOTH Bitget+Binance books (kills the SKYAI single-venue exit-book blind spot, memory feedback_skyai_exit_liquidity_is_bitget). onchain.newly_fired = SPEC-24 token-out-gated confirmed fires; staging_vs_execution = SPEC 28. A READ, not a commit (\u00a70.5): surfaces all data but state.verdict stays authoritative."
+ },
+ "classify": {
+  "invoke": "python3 capabilities/classify.py {ticker} [--render {render}] --json",
+  "filter": null,
+  "status": "native",
+  "desc": "CONFIRMS/TRIGGERS/BREAKS per token vs its committed thesis (the daily board)",
+  "contract": {
+   "in": {
+    "ticker": "str? \u2014 omit for whole board",
+    "render": "str? \u2014 full (default) | compact (SPEC-193: decision-only rows, no pretty-print indent, drops leverage_state + raw per-venue venue_agreement arrays; reason UNTRUNCATED)"
+   },
+   "out": {
+    "ticker": "str",
+    "verdict": "CONFIRMS|TRIGGERS|WATCH-ARMED|BREAKS",
+    "reason": "str",
+    "thesis_present": "bool",
+    "thesis_drift": "obj? \u2014 SPEC-91: null unless live price ran past the whole committed structure, else {stale,live_price,nearest_anchor,nearest_dist_pct,furthest_anchor,all_tps_printed,side}; reason then LEADS with \u23f3 STALE-THESIS [DRIFT] \u2026 RE-ANCHOR",
+    "price_leg": "obj? \u2014 {high,low,stop_breached,tps_printed,entered_zone,window,venue_agreement} | null; venue_agreement (SPEC-188 \u00a73) is {label:FULL|PARTIAL|SINGLE,n_crossed,n_total,crossed,closed_beyond,size_book_venue} | null \u2014 annotation only, never changes verdict; the label is also appended to `reason` as \"(tape: LABEL n/total)\"",
+    "watch_leg": "obj? \u2014 {breached,high,low,window,legacy,venue_agreement} | null; venue_agreement same shape as price_leg's, off the first breached watch_level"
+   }
+  },
+  "test": "tests/test_orchestrator.py",
+  "doc": "docs/orchestrator.md"
+ },
+ "regime_flip": {
+  "invoke": "python3 capabilities/regime_flip.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "desc": "Live-vs-stored funding drift: REGIME_FLIP/ZONE_BLOWN/CONFIRM/DUST",
+  "contract": {
+   "in": {
+    "ticker": "str? \u2014 omit for full watchlist"
+   },
+   "out": {
+    "ticker": "str",
+    "tag": "str",
+    "note": "str"
+   }
+  },
+  "test": "tests/test_orchestrator.py",
+  "doc": "docs/regime_flip.md",
+  "_note": "native --json verified Phase 0: emits {ticker,tag,note,funding_pi,...} clean (single-ticker dict; bare/multi \u2192 list)."
+ },
+ "triage": {
+  "invoke": "python3 capabilities/triage.py {tickers} [--render {render}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 120,
+  "desc": "Watchlist crime-triage board: per-token signals, direction, tier (the 60-90min refresh board)",
+  "contract": {
+   "in": {
+    "tickers": "str? \u2014 space-separated subset; omit for full watchlist",
+    "render": "str? \u2014 full (default) | compact (SPEC-193: drops leverage_state + null keys)"
+   },
+   "out": {
+    "ticker": "str",
+    "category": "str",
+    "price": "float?",
+    "chg24": "float?",
+    "range_pct": "int?",
+    "vol_m": "float",
+    "funding_pi": "float?",
+    "oi_chg_pct": "int?",
+    "ls_ratio": "float?",
+    "signals": "list[str]",
+    "direction": "short|long|neutral",
+    "tier": "live|watch|dust",
+    "memo": "str"
+   }
+  },
+  "test": "tests/test_triage_json.py",
+  "doc": "docs/triage.md",
+  "_note": "native port of the parts-bin triage.py (413L noisy CLI). build_board() = pure compute; --json = machine path; bare = human cards. funding_pi per-interval %, Bybit-preferred."
+ },
+ "scan": {
+  "invoke": "python3 capabilities/scan.py [--side {side}] [--min-vol {min_vol}] [--top {top}] [--thresh {thresh}] [--include-hl] [--mode {mode}] [--fb-candidates {fb_candidates}] [--oi-catalog {oi_catalog}] [--oi-baseline {oi_baseline}] [--oi-baseline-path {oi_baseline_path}] [--render {render}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 240,
+  "desc": "Cross-sectional DISCOVERY scanner: entire Bybit perp universe ranked by funding extremity (%/4h), liquidity-gated. Also a SCOUT board (--scout / --scout-signals, SPEC-82): runs the \u00a76 setup_score scorers across the watchlist and partitions {scout,armed,quiet} \u2014 surfaces the near-armed ramp (score>=required-1) with add_triggers, even with no committed thesis. SPEC-84: --include-hl additionally merges HL-native perps (self-custody venue) into the universe; default off keeps the Bybit-only run byte-identical. SPEC-120: --mode faded_bounce screens the user's primary edge (off-ATH + bounced + faded volume + funding-flat + not-squeezing, tiered by distribution freshness where available) \u2014 an unrecognized --mode fails loudly, never a silent fallback to the default funding scan. SPEC-148: --mode oi_surge is a cross-sectional discovery net over Binance/Bybit/Bitget/Aster/Hyperliquid catalogs \u2014 flags cross-venue OI surges vs a persisted baseline (state/oi_surge_baseline.json), vol/OI brushing, funding extremity (SPEC-108/112 selection), and fresh listings; retires the manual loris.tools/markets browse.",
+  "contract": {
+   "in": {
+    "side": "long|short|both? (default both)",
+    "min_vol": "float? \u2014 min 24h turnover $M (default 10)",
+    "top": "int? (default 25)",
+    "thresh": "float? \u2014 funding %/4h threshold (default 0.10)",
+    "mode": "str? \u2014 faded_bounce (SPEC-120) | oi_surge (SPEC-148); an unrecognized value fails loudly (ok:false), never a silent default-scan fallback",
+    "fb_candidates": "obj? \u2014 faded_bounce offline: {ticker:{fields}} injected (no network)",
+    "oi_catalog": "list? \u2014 oi_surge offline: [{ticker,venue,oi_usd,vol24h_usd,funding_raw_pct,interval_min,is_floor}] injected (no network, no baseline file I/O)",
+    "oi_baseline": "obj? \u2014 oi_surge offline: {ticker:{ts,oi_usd_total,vol24h_usd_total,first_seen_ts}} injected \u2014 only used together with oi_catalog",
+    "oi_baseline_path": "str? \u2014 oi_surge: override the baseline state-file path (default state/oi_surge_baseline.json); a missing file seeds, a corrupt file is LOUD ok:false",
+    "render": "str? \u2014 full (default) | compact (SPEC-193: caps excluded/dropped_below_top to a count + 3-item sample)"
+   },
+   "out": {
+    "universe": "int",
+    "min_vol_m": "float",
+    "thresh": "float",
+    "side": "str",
+    "longs": "list[cand]",
+    "shorts": "list[cand]",
+    "cand": "{ticker, funding_4h, funding_raw, interval_h, turnover_m, chg24, oi, price, deep, side}",
+    "scout_board": "(--scout) {scout:[row],armed:[row],quiet:[ticker]}; row={ticker,setup,verdict,tier,score,required,add_triggers,swing_vetoes}",
+    "faded_bounce_board": "(mode=faded_bounce) {mode,cfg,universe,candidates:[{ticker,tier,onchain,gates,caveats,rank_score,off_ath_pct,bounce_pct,vol_pct_of_peak,funding_4h,next_step}],excluded:[{ticker,reason,failed_gates,gates}],dropped_below_top:[ticker]}",
+    "oi_surge_board": "(mode=oi_surge) {mode,status,cfg,universe,candidates:[{ticker,venues,oi_usd_total,oi_delta_pct,baseline_age_h,vol24h_usd,vol_oi_ratio,funding_extreme:{venue,pi_4h}?,new_listing:{venue}?,flags,dex_share_pct?,next_step}],excluded:[{ticker,reason}],dropped_below_top:[ticker],meta:{venues_errored}}. status:\"seeded\" on the baseline store's first run (zero candidates, by design \u2014 SPEC-137)."
+   }
+  },
+  "test": "tests/test_scan.py",
+  "doc": "docs/scan.md",
+  "_note": "native port of parts-bin scan_all.py. funding_4h normalized to %/4h across intervals; LIVE/predicted funding. First-pass net \u2014 confirm per-venue before entry. SCOUT board is hypothesis-tier (n<10, \u00a79) \u2014 ledger tier:scout split from ARMED."
+ },
+ "onchain": {
+  "invoke": "python3 capabilities/onchain.py {ticker} [--depth {depth}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 90,
+  "desc": "On-chain analyser (the desk spine): live mega-safe NONCE signal + composed whole-coin picture. The \u00a78 live-top read \u2014 nonce-based, never the getLogs hang",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "depth": "fast|nonce? (default fast; nonce = just the live signal)"
+   },
+   "out": {
+    "ticker": "str",
+    "bias": "str",
+    "score": "int",
+    "signal": "ESCALATION|LOADING|DORMANT|QUIET|UNTRACKED|DISTRIBUTING (SPEC-89: flips off bare QUIET when a top holder distributes)",
+    "top_holder_distribution": "obj{checked,distributing,n_checked,holders[{address,verdict,last_out_ts,sell_destinations}]} \u2014 SPEC-89 verify_wallet sweep of the top holders",
+    "distribution_checked": "bool \u2014 SPEC-89: QUIET = 'verified quiet' only when True (else nonce-blind / quota-degraded)",
+    "signal_caveat": "str? \u2014 SPEC-89: 'top-holder distribution present (verify_wallet)' when a top holder is DISTRIBUTING",
+    "nonces": "obj{signal,score,fired_count,primed_unfired_count,dormant_count,newly_fired,escalation_fired,ms}",
+    "safe_history": "obj{available,source,wallets[{label,tier,tx_count,out_count,last_out_ts}]}",
+    "recent_flows": "obj{available,recent[{from_label,to,to_entity,token,value,ts}]}",
+    "vc_overlap": "obj{available,matches}",
+    "concentration": "obj{available,reason}",
+    "coverage": "obj"
+   }
+  },
+  "test": "tests/test_onchain.py",
+  "doc": "docs/onchain.md",
+  "_note": "NATIVE (Phase 2). Spine = build_nonce_state: live eth_getTransactionCount per tracked safe diffed vs state/nonce_baseline_<T>.json \u2192 ESCALATION when a MAPPED dormant safe fires vs a fresh baseline (SPEC 9: baseline_seeded/baseline_age/baseline_stale, mapped-vs-UNMAPPED confidence). safe_history+recent_flows via Moralis; concentration via GoPlus (top1/top10/holder_count, SPEC 12) \u2014 both cover BSC. All layers coverage-labeled, concurrent, never hang. analyse sources its on-chain read from build_nonce_state."
+ },
+ "depth": {
+  "invoke": "python3 capabilities/depth.py {ticker} [--venue {venue}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "Live order-book shelf read (SPEC 27, +SPEC-84 HL, +SPEC-85 Aster): largest resting bid shelf below + ask wall above per venue (Aster FIRST \u2014 the execution venue \u2014 then Bitget + Binance cross-check; also surfaces hyperliquid for the ~2/26 overlap names it lists, oracle-marked, omitted otherwise) with price + $size, round-number/spoof tags, and a truncation flag. Read-only intel \u2014 NOT an auto-verdict input. (Aster book = TP/exit-shelf anchor only; liq fires off the oracle aggregate, not Aster's DOM \u2014 \u00a77.)",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "venue": "str (optional: aster|bitget|binance|hyperliquid)"
+   },
+   "out": {
+    "ticker": "str",
+    "venues": "obj{venue:{mid,bid_shelf_below,ask_wall_above,truncated,deepest_level_seen}}"
+   }
+  },
+  "test": "tests/test_depth.py",
+  "doc": "docs/depth.md",
+  "_note": "merge-depth caps ~100 levels; truncated:true means defer to the live DOM, NOT 'no liquidity below'."
+ },
+ "regime_check": {
+  "invoke": "python3 capabilities/regime_check.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "Cross-venue funding/OI table for one ticker: regime per \u00a72 + divergence (\u00a78) + funding/OI z-scores vs token's own history",
+  "contract": {
+   "in": {
+    "ticker": "str (required)"
+   },
+   "out": {
+    "ticker": "str",
+    "funding": "obj{venue:{latest,history,regime,z}}",
+    "oi_z": "obj{venue:{today,mean,std,z,n}}",
+    "oi_24h": "obj{venue:{first,last,trend_pct}}",
+    "divergence": "obj|null"
+   }
+  },
+  "test": "tests/test_phase1.py",
+  "doc": "docs/regime_check.md",
+  "_note": "native port of parts-bin regime_check.py. Funding per-interval %. Distinct from regime_flip (single live-vs-stored drift)."
+ },
+ "price_structure": {
+  "invoke": "python3 capabilities/price_structure.py {ticker} [--days {days}] [--squeeze-pct {squeeze_pct}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "Layer 4 daily price structure: ATH/ATL + range pos, squeeze events + pattern, cascade/bounce vol, swing structure, compression",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "days": "int? (default 90)",
+    "squeeze_pct": "float? (default 15)"
+   },
+   "out": {
+    "ticker": "str",
+    "range_pos": "float",
+    "squeezes": "list",
+    "squeeze_pattern": "diminishing|growing|mixed|none",
+    "vol_profile": "obj",
+    "structure": "obj",
+    "compression": "obj|null",
+    "young_listing": "bool"
+   }
+  },
+  "test": "tests/test_phase1.py",
+  "doc": "docs/price_structure.md",
+  "_note": "native port of parts-bin price_structure.py. Unlisted ticker \u2192 {error}."
+ },
+ "liq_magnets": {
+  "invoke": "python3 capabilities/liq_magnets.py {ticker} [--days {days}] [--interval {interval}] [--buckets {buckets}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "Layer 3 liquidation-magnet estimator (volume-profile HVN proxy + round-number magnets). NOT a Coinglass replica",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "days": "int? (default 14)",
+    "interval": "str? (default 15m)",
+    "buckets": "int? (default 100)"
+   },
+   "out": {
+    "ticker": "str",
+    "current": "float",
+    "hvns": "list[zone]",
+    "upside_magnets": "list",
+    "downside_magnets": "list",
+    "round_numbers": "list"
+   }
+  },
+  "test": "tests/test_phase1.py",
+  "doc": "docs/liq_magnets.md",
+  "_note": "native port of parts-bin liq_magnets.py. Approximate \u2014 verify trade-critical levels vs the real chart."
+ },
+ "pull5": {
+  "invoke": "python3 capabilities/pull5.py {ticker} [--cg-id {cg_id}] [--onchain {onchain}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 90,
+  "desc": "Unified multi-layer pull (\u00a714): Coingecko id + perp regime + liq magnets + price structure (+ opt-in on-chain) in one object",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "cg_id": "str? \u2014 override Coingecko id",
+    "onchain": "str? \u2014 pass any value to include the slow on-chain layer"
+   },
+   "out": {
+    "ticker": "str",
+    "layer0_coingecko": "obj",
+    "layer2_regime": "obj",
+    "layer3_magnets": "obj",
+    "layer4_structure": "obj",
+    "layer1_onchain": "obj|null"
+   }
+  },
+  "test": "tests/test_phase1.py",
+  "doc": "docs/pull5.md",
+  "_note": "native aggregator composing the other build_* fns. on-chain opt-in (slow RPC); Designer usually calls `onchain` separately. The [--onchain {onchain}] group adds the flag only if onchain arg present (its value is ignored by argparse store_true)."
+ },
+ "screener": {
+  "invoke": "python3 capabilities/screener.py [--mode {mode}] [--min-score {min_score}] [--pages {pages}] [--top {top}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 90,
+  "desc": "BNB-chain DISCOVERY net by structural fingerprint (perp-listed only). pump=mid-cycle, accumulation=pre-cycle Phase-1",
+  "contract": {
+   "in": {
+    "mode": "pump|accumulation? (default pump)",
+    "min_score": "int? (default 3)",
+    "pages": "int? \u2014 Coingecko pages 250/ea (default 2)",
+    "top": "int? (default 25)"
+   },
+   "out": {
+    "mode": "str",
+    "scanned": "int",
+    "perp_universe": "{binance:int,bybit:int}",
+    "candidates": "list[{ticker,score,why,venues,mc,fdv_mc,circ_ratio,vol,ch7,ch30,on_watchlist}]",
+    "screener_degraded": "str? \u2014 SPEC-174 #5: 'coingecko_429'|'coingecko_error' \u2014 present when markets() fell back to its 15-min on-disk cache (or came up short) after exhausting per-page 429 backoff retries; absent on a clean live fetch"
+   }
+  },
+  "test": "tests/test_screener.py",
+  "doc": "docs/screener.md",
+  "_note": "native port of parts-bin screener.py. Coingecko category endpoint (free-tier rate-limited \u2014 SPEC-174 #5: each page now retries a 429 with exponential backoff, then falls back to a 15-min on-disk cache, loudly flagged screener_degraded; perp_universe still populates from Binance/Bybit regardless). Second scanner alongside `scan`. Score is a prior, not a verdict."
+ },
+ "wallet_state": {
+  "invoke": "python3 capabilities/wallet_state.py {ticker} [--mode {mode}] [--days {days}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 120,
+  "desc": "Consolidated wallet state (Phase 2: folds watch_wallets/nonce_watch/flows/activity/safe_audit). snapshot=per-wallet nonce+gas+fired; audit=lifetime distribution",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "mode": "snapshot|audit? (default snapshot)",
+    "days": "int? \u2014 audit lookback (default 90)"
+   },
+   "out": {
+    "ticker": "str",
+    "tracked": "bool",
+    "n_wallets": "int",
+    "fired_count": "int",
+    "dormant_count": "int",
+    "primed_unfired_count": "int",
+    "wallets": "list[{label,address,chain,tier,nonce,native_balance,fired,rpc_ok}]"
+   }
+  },
+  "test": "tests/test_wallet_state.py",
+  "doc": "docs/wallet_state.md",
+  "_note": "snapshot is native (reads crime-desk/config/tracked_wallets.json, live RPC nonce+balance). audit delegates parts-bin safe_audit.py --json (reads _oldrepo config). Use for raw per-wallet nonce grid; `onchain` for the scored verdict."
+ },
+ "onchain_radar": {
+  "invoke": "python3 capabilities/onchain_radar.py [{token}] [--tickers \"{tickers}\"] [--budget {budget}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 420,
+  "desc": "Full onchain-radar feed replacement (SPEC 16): per Cat A token = distributors + accumulators + cost-basis-tagged independent sellers, + tracked-whale Hyperliquid positions near liquidation. Perp-fused, change-detected",
+  "contract": {
+   "in": {
+    "token": "str? \u2014 one ticker; omit to sweep all Cat A watchlist names",
+    "tickers": "str? \u2014 SPEC 29: comma/list subset to sweep",
+    "budget": "int? \u2014 SPEC 29: time budget (s)"
+   },
+   "out": {
+    "scanned": "list[str]",
+    "alerts_total": "int",
+    "tokens": "obj{TICKER:{available,perp,distributors,accumulators,independent_sellers,alerts}}",
+    "perp_liqs": "{available,positions[{whale,coin,side,size,entry,liq,liq_distance_pct,near_liq}]}"
+   }
+  },
+  "test": "tests/test_onchain_radar.py",
+  "doc": "docs/onchain_radar.md",
+  "_note": "SPEC 16 = superset of distribution_radar. ONE candidate pass/token yields distributors (HIGH seeded/MED indep, via verify_wallet.distributing) + accumulators (verify_wallet.accumulating = independent net-buyers) + independent_sellers w/ held_days+holder_type (early-winner vs operator dump). perp_liqs = HL clearinghouseState for config/hyperdash_whales.json whales, liq_distance vs live price. Change-detected (or_dist_/or_acc_ state). Full sweep is a periodic cadence tool (~mins)."
+ },
+ "accumulation_radar": {
+  "invoke": "python3 capabilities/accumulation_radar.py [{wallet}] [--ticker {ticker}] [--budget {budget}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 420,
+  "desc": "SPEC-76 operator accumulation radar (LONG-side mirror of distribution_radar): watch the mapped operator cluster wallets (team/op/distribution + cross-Cat-A escrows) ACCUMULATE a NEW untracked token, classify active-load vs parked-allocation, cross with perp construction, rank IMMINENT/EARLY/PARK",
+  "contract": {
+   "in": {
+    "wallet": "str? \u2014 one operator wallet (omit to sweep the whole cluster)",
+    "ticker": "str? \u2014 SPEC-174: scope the result to one off-board token symbol (still sweeps the full cluster; filters the candidate list post-sweep)",
+    "budget": "int? \u2014 SPEC 29 time budget (s)"
+   },
+   "out": {
+    "scanned_wallets": "list[str]",
+    "n_wallets": "int",
+    "candidates": "list[{wallet,wallet_label,is_escrow,token,token_contract,chain,size,pct_supply,mode,change,perp,tier,first_seen}]",
+    "imminent": "list[candidate] \u2014 active load + perp firing (the tradeable early-long)",
+    "caveats": "list[str]",
+    "ticker": "str? \u2014 present only when a ticker scope was requested",
+    "not_found": "bool? \u2014 SPEC-174: true when a requested ticker matched no cluster-wallet candidate"
+   }
+  },
+  "test": "tests/test_accumulation_radar.py",
+  "doc": "docs/accumulation_radar.md",
+  "_note": "SPEC-76. Wallet-centric (vs onchain_radar token-centric). Pipeline: cluster wallets -> ERC20 inbound snapshot + baseline diff (NEW / >50%-GROWN) -> untracked-only -> active(DEX/CEX/open-market) vs parked(vesting/escrow seed) via verify_wallet funded_by -> perp cross (deep-neg trap-formation funding \u00a74 + OI building = firing) -> IMMINENT(active+firing)/EARLY(loaded,perp dormant)/PARK(parked,no perp). Quota: snapshot+diff cadence, cap 40 wallets/run. backtest_lead_time is the \u00a79 go/no-go gate (orchestrator runs it on live history). On-chain accumulation = the spot-side decompose the \u00a74 long gate is missing."
+ },
+ "distribution_radar": {
+  "invoke": "python3 capabilities/distribution_radar.py [{token}] [--days {days}] [--tickers \"{tickers}\"] [--budget {budget}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 360,
+  "aliases": {"ticker": "token"},
+  "desc": "In-house onchain-radar: DISCOVERS distributing wallets across Cat A watchlist names (seeded-from-safe HIGH + independent-holder MED), perp-fused, change-detected",
+  "contract": {
+   "in": {
+    "token": "str? \u2014 one ticker (SPEC-174: also accepts the desk-natural `ticker` key, aliased); omit to sweep all Cat A watchlist names",
+    "days": "int? \u2014 seeded-recipient window (default 4)",
+    "tickers": "str? \u2014 SPEC 29: comma/list subset to sweep",
+    "budget": "int? \u2014 SPEC 29: time budget (s)"
+   },
+   "out": {
+    "scanned": "list[str]",
+    "alerts_total": "int",
+    "tokens": "obj{TICKER:{available,perp,distributors[{address,confidence,seeded,seeded_from,balance,balance_usd,last_out,dex_selling,verdict}],alerts,n_candidates}}"
+   }
+  },
+  "test": "tests/test_distribution_radar.py",
+  "doc": "docs/distribution_radar.md",
+  "_note": "SPEC 15. Discovery (vs verify_wallet's named-address check): seeded-recipient discovery = inverse of funded_by (tracked safe OUTBOUND\u2192to addrs); independent = GoPlus top holders minus tracked/cex/lp/contracts. HIGH=seeded+distributing, MED=independent+distributing. Change-detected via state/radar_distributors_<T>.json. Moralis+GoPlus (cover BSC). Single token ~15s; full Cat A sweep ~5min (periodic cadence tool, not interactive). Partial-with-labels if a provider rate-limits."
+ },
+ "verify_wallet": {
+  "invoke": "python3 capabilities/verify_wallet.py {address} --token {token} [--chain {chain}] [--days {days}] --json",
+  "aliases": {
+   "ticker": "token",
+   "wallet": "address"
+  },
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "Ad-hoc on-chain address lookup (\u00a78 intel): funding source (flags seeded-by-tracked-safe), balance, distribution activity, verdict. Moralis-backed (covers BSC). MULTI-CHAIN (SPEC 21): checks every chain the token is deployed on",
+  "contract": {
+   "in": {
+    "address": "str (required) \u2014 alias: wallet (SPEC-89)",
+    "token": "str (required) \u2014 ticker (needs contract in tracked config); alias: ticker (SPEC-89)",
+    "chain": "str? \u2014 restrict to one chain (eth/bsc/base); default = all deployed (SPEC 21)",
+    "days": "int? (default 180)"
+   },
+   "out": {
+    "address": "str",
+    "token": "str",
+    "verdict": "SEEDED-STAGING|DISTRIBUTING|INDEPENDENT-HOLDER|DORMANT",
+    "seeded_staging": "bool",
+    "funded_by": "list[{address,kind,label,amount}]",
+    "token_balance": "float",
+    "token_balance_usd": "float?",
+    "out_count": "int",
+    "last_out_ts": "str?",
+    "recent_outbounds": "list",
+    "chain": "str (primary)",
+    "chains_queried": "list[str]",
+    "degraded_chains": "list[str]",
+    "available": "bool"
+   }
+  },
+  "test": "tests/test_verify_wallet.py",
+  "doc": "docs/verify_wallet.md",
+  "_note": "SPEC 14 + SPEC 21 (multi-chain). Moralis (moralis_api_key) for arbitrary-address token transfers \u2014 bscscan free tier rejects BSC. funded_by flags inbound from a tracked team/distribution/passthrough safe as SEEDED-STAGING (\u00a78: not independent). SPEC 21: queries ALL deployed chains and aggregates outflows so a wallet active on a non-default chain (e.g. EDEN team wallets on ETH while default-pick is BSC) is no longer false-DORMANT; `chain` arg restricts to one. Token must have a contract in tracked_wallets config."
+ },
+ "onchain_board": {
+  "invoke": "python3 capabilities/onchain.py --board --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 90,
+  "desc": "On-chain SURVEILLANCE sweep: nonce signal across all tracked watchlist names, alerts on ESCALATION (dormant safe fired). The cadence target",
+  "contract": {
+   "in": {},
+   "out": {
+    "scanned": "int",
+    "alerts": "list[{ticker,signal,escalation_fired,...}]",
+    "loading": "list[str]",
+    "wallets_total": "int",
+    "wallets_read": "int",
+    "wallets_unreadable": "int",
+    "unreadable": "list[{address,chain,reason,ticker}]",
+    "coverage_alerts": "list[{severity,kind,chain,msg}]",
+    "board": "list[{ticker,signal,score,fired_count,wallets_total,wallets_unreadable,...}]"
+   }
+  },
+  "test": "tests/test_onchain.py",
+  "doc": "docs/onchain_board.md",
+  "_note": "cheap nonce-only RPC sweep (no Moralis). Persists each token's baseline, so consecutive sweeps catch a fire \u2014 run on a cadence (cron/launchd local, or /loop in-session). alerts=ESCALATION only. SPEC-145: wallets_unreadable/coverage_alerts surface a half-blind sweep instead of reading as a clean QUIET."
+ },
+ "analyse": {
+  "invoke": "python3 capabilities/analyse.py {ticker} [--days {days}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 150,
+  "desc": "Combined perp+onchain verdict engine: concurrent data layers, 90s on-chain budget (SPEC 1b), \u00a74 neg-funding LONG confluence gate (SPEC 4)",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "days": "int? \u2014 on-chain lookback (default 90)"
+   },
+   "out": {
+    "ticker": "str",
+    "verdict": "LONG|SHORT|WATCH|PASS",
+    "direction": "str",
+    "tier": "str",
+    "reason": "str",
+    "onchain": "OK|DEGRADED|UNAVAILABLE|UNMAPPED",
+    "onchain_ms": "int?",
+    "funding_4h": "float?",
+    "near_ath": "bool",
+    "cvd_verdict": "str?",
+    "notes": "list"
+   }
+  },
+  "test": "tests/test_analyse.py",
+  "doc": "docs/analyse.md",
+  "_note": "NATIVE port of parts-bin analyse convergence. Pulls perp/onchain/cvd/intraday/oi/whales concurrently from _oldrepo sub-analysers (--json). On-chain capped 90s \u2192 onchain:UNAVAILABLE, perp verdict still returns. neg-funding LONG requires full \u00a74 confluence else WATCH. filters/analyse.py retired (kept for the old delegated banner path if ever needed)."
+ },
+ "setup_score": {
+  "invoke": "python3 capabilities/setup_score.py {payload} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "SPEC 59/82/83 \u2014 the \u00a76 setup checklists as deterministic box-counters. score_setup/score_all over a normalized signals snapshot (assembled live from price_structure/live_perp/oi_sides/tape/cvd/onchain/depth; inject signals for offline). Per setup: {score,required,legs:{name:{pass,value,source}},vetoes,swing_vetoes,missing,add_triggers,verdict ARMED|SCOUT|FORMING|VETOED|ABSENT,tier,(add_legs/geometry)}. SCOUT (SPEC-82) = near-armed (score>=required-1): missing legs reframed as add_triggers (size-up, not gates); a chronic-squeezer swing-veto demotes ARMED->SCOUT (scalp-allowed) instead of suppressing. Setups: blowoff (ALL 5), catb_top (4+ of 6), trap_long=neg_funding_gate (\u00a74 ALL 4, veto WASH), stage45_short (4+ of 5), defended_fade_short/long (SPEC-83 ALL 3: wall_growing+empty_beyond+stall; cascade legs ride as add_triggers; geometry entry=level/stop=beyond-wall). Wall-dynamics: derive_wall_growing/record_wall_snapshot (state/wall_history.json, gitignored) make the THICKENING wall visible across snapshots. Hard vetoes: oi_sides WASH, \u00a75 deep-neg SHORT, empty_beyond-false (unsafe fade), DEX-mark, liquidity-gate. Scores only \u2014 NO trade calls.",
+  "contract": {
+   "in": {
+    "payload": "JSON {ticker,setup?} (live) OR {setup?,signals{}} (offline). setup omitted = score all."
+   },
+   "out": {
+    "setup": "{setup,score,required,legs:{name:{pass,value,source}},vetoes:[str],swing_vetoes:[str],missing:[str],add_triggers:[str],verdict ARMED|SCOUT|FORMING|VETOED|ABSENT,tier armed|scout|null; defended_fade adds add_legs:{name:{pass,value,source}} + geometry:{entry,stop,side}}",
+    "all": "{blowoff,catb_top,trap_long,neg_funding_gate,stage45_short,defended_fade_short,defended_fade_long} each as above + _meta"
+   }
+  },
+  "test": "tests/test_setup_score.py",
+  "doc": "docs/setup_score.md"
+ },
+ "workup": {
+  "invoke": "python3 capabilities/workup.py {payload} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "SPEC 60 \u2014 the \u00a70.6 five-question scan as ONE call. Composes existing capabilities concurrently into chips (onchain concentration/coverage/apparatus), stage (price_structure full-history), oi_construction (live_perp cross-venue funding + oi_sides wash/real + funding_divergence), size (depth books + cvd + liquidity tier + oi_cap), rr (liq_magnets + setup_score SPEC 59 + missing legs), plus flags (squeeze_chronic/venue mark divergence/liquidity tier/alerts). Per-section degrade-explicit; NO verdict field (the Designer judges); meta.ms ~ slow read not sum. Read-only.",
+  "contract": {
+   "in": {
+    "payload": "JSON {ticker:X}"
+   },
+   "out": {
+    "dossier": "{ticker, chips, stage, oi_construction, size, rr, flags, meta{ms,sections}} \u2014 each section {available,source,...} or {available:false,reason}; NO verdict"
+   }
+  },
+  "test": "tests/test_workup.py",
+  "doc": "docs/workup.md"
+ },
+ "replay": {
+  "invoke": "python3 capabilities/replay.py {payload} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 600,
+  "desc": "SPEC 62 \u2014 backtest the SPEC-59 setup scorers for real \u00a79 base rates. action=fetch (cache 1h klines+funding+OI under state/replay/, idempotent; OI capped 30d by Binance) | run (step bars, score PRICE/OI/FUNDING-computable legs, simulate \u00a76 entry+\u00a77 stop/TP on ARMED, append outcomes) | report (per-signature n/hit%/avg R/max-adverse-excursion + by-symbol) | ledger-import (write rows tagged source:replay, never mixed with live). Replay-able setups: blowoff, catb_top (both SHORT). Engine pure over a bar list \u2014 deterministic/reproducible.",
+  "contract": {
+   "in": {
+    "payload": "JSON {action:fetch|run|report|ledger-import, setup?, symbols?[]}"
+   },
+   "out": {
+    "fetch": "{fetched,skipped_cached,failed,note}",
+    "run": "{ran,symbols,outcomes}",
+    "report": "{setup,total_outcomes,signatures:{sig:{n,hit_pct,avg_r,total_r,max_adverse_excursion_r,by_symbol,source:replay}}}",
+    "ledger-import": "{imported,source:replay}"
+   }
+  },
+  "test": "tests/test_replay.py",
+  "doc": "docs/replay.md"
+ },
+ "unlocks": {
+  "invoke": "python3 capabilities/unlocks.py [{ticker}] [--cg-id {cg_id}] [--horizon {horizon}] [--op {op}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 180,
+  "aliases": {},
+  "desc": "SPEC-95 \u2014 auto-populated token-unlock calendar + pre-unlock (T-3d/T-1d) alerts. ticker-mode: upcoming unlocks for one token SIZED off CANONICAL CoinGecko circulating supply + live price (NOT a single-chain GoPlus total_supply \u2014 the BEAT 612k/3431% bug); keyed off cg_id not bare ticker (BEAT=audiera). op=sweep: full-watchlist sweep -> merges upcoming unlocks into config/catalysts.json (manual entries preserved, auto marked source+fetched_ts). op=fire-alerts: fire once-per-event inbox alerts at T-3d/T-1d (cursor-deduped). Source: DefiLlama emissions datasets (free) + config/unlock_seed.json fallback. Coverage-honest: source-down=coverage:false, source-up-no-data=uncovered (never silently 'no unlock').",
+  "contract": {
+   "in": {
+    "ticker": "str? \u2014 one token (ticker-mode)",
+    "cg_id": "str? \u2014 explicit CoinGecko id override (identity discipline)",
+    "horizon": "int? \u2014 flag horizon days (default 7)",
+    "op": "str? \u2014 ticker|sweep|fire-alerts (default ticker)"
+   },
+   "out": {
+    "ticker": "str",
+    "cg_id": "str",
+    "coverage": "bool \u2014 a source answered (false=source down)",
+    "uncovered": "bool \u2014 source up but no events found",
+    "events": "list[{date,amount,type,cg_id,source,pct_circulating,usd_notional,vs_daily_volume,days_until,upcoming}]",
+    "next_unlock": "obj|null",
+    "within_horizon": "bool",
+    "flag": "str|null \u2014 \u23f0 UNLOCK T-Nd: %/$ type (\u00d7vol)",
+    "(sweep)": "{scanned,covered,uncovered,source_down,written,refreshed,n_events}",
+    "(fire-alerts)": "{fired:int}"
+   }
+  },
+  "test": "tests/test_unlocks.py",
+  "doc": "docs/unlocks.md",
+  "_note": "SPEC-95. Auto feed = DefiLlama emissions datasets (key-free; api.llama.fi/emissions is 402, CryptoRank 401). unlock_seed.json = documented fallback for names the feed doesn't track yet (Audiera). classify board + brief read the sweep-populated catalysts.json offline to surface the \u23f0 UNLOCK flag (no network in the board/brief path). Pre-unlock alerts wired into ops/surveil.sh. Pairs with stake_schedule (on-chain cliffs) for confirmation."
+ },
+ "liqs": {
+  "invoke": "python3 capabilities/liqs.py {ticker} [--window {window}] [--bar {bar}] [--oi-delta {oi_delta}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 20,
+  "desc": "SPEC-103 \u2014 per-venue forced-liquidation stream as OI ground truth. Corpus rule: aggregate OI is operator-fakeable (double-open \u5bf9\u6572, multi-account internal transfer); liq prints cannot be faked, so a material OI move cross-checked against liq-silence is the tell. Venue: OKX public liquidation-orders REST (live-verified 2026-07-02, keyless, works) \u2014 Binance forceOrders is dead on the free path (401/400, matches tape.py's existing finding), kept as a documented seam. oi_liq_consistency verdict: CONFIRMED (real move) / SUSPECT_FAKE (double-open fingerprint) / TRANSFER (multi-account profit-transfer) / UNKNOWN (feed down \u2014 never a clean bill) / null (OI move sub-material).",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "window": "float? \u2014 hours (default 4)",
+    "bar": "float? \u2014 bar minutes (default 5)",
+    "oi_delta": "float? \u2014 the window's OI delta %% for the cross-check verdict"
+   },
+   "out": {
+    "ticker": "str",
+    "available": "bool",
+    "venue": "str|null \u2014 which venue answered (okx today)",
+    "window_h": "float",
+    "bar_minutes": "float",
+    "bars": "list[{ts,long_usd,short_usd,count,largest_usd,cum_long_usd,cum_short_usd,liq_silence}]|null",
+    "total_long_usd": "float",
+    "total_short_usd": "float",
+    "oi_liq_consistency": "{verdict: CONFIRMED|SUSPECT_FAKE|TRANSFER|UNKNOWN|null, reason: str}"
+   }
+  },
+  "test": "tests/test_liqs.py",
+  "doc": "docs/liqs.md",
+  "_note": "SPEC-103. Read-only ground-truth cross-check \u2014 no auto-verdict override, feeds the Designer's operator-lens between triggers (same discipline as tape). tape.py surfaces liq_consistency using its own already-fetched OI series; brief.py's liqs layer feeds the analyse()-computed oi_chg_pct in; workup.py's oi_sides_read gains a liq-silence corroborator when WASH. See REVIEW-REQUEST-SPEC-103.md for the live venue-verification transcript (Binance dead, OKX genuinely public)."
+ },
+ "oi_mc": {
+  "invoke": "python3 capabilities/oi_mc.py {ticker} [--oi-usd {oi_usd}] [--mc-usd {mc_usd}] [--direction {direction}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 15,
+  "desc": "SPEC-122 \u2014 OI/MC ratio as a 'perp-casino' flag. The ledger's worst signature (SPEC-40) is mindshare/blowoff-top short: n=324, hit 32%, total -26.3R \u2014 vertical perp pumps on low-MC names where the game is entirely in the derivatives. oi_mc_ratio = cross-venue OI (USD) / circulating MC (USD): <0.5 normal, 0.5-1.5 PERP_HEAVY, >1.5 PERP_CASINO (EVAA printed 252% live 2026-07-10, DoubleEdge CT intel). PERP_CASINO does not hard-block \u2014 it attaches an explicit caveat to a SHORT-direction row so the desk never takes one of these blind.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "oi_usd": "float? \u2014 cross-venue OI in USD (omit for a ratio-less MC-only read)",
+    "mc_usd": "float? \u2014 circulating market cap in USD (omit to fetch live via CoinGecko)",
+    "direction": "str? \u2014 SHORT|LONG, gates the PERP_CASINO caveat"
+   },
+   "out": {
+    "ticker": "str",
+    "oi_usd": "float|null",
+    "mc_usd": "float|null",
+    "oi_mc_ratio": "float|null \u2014 null when oi_usd or mc_usd is missing/non-positive (\u00a73, never fabricated)",
+    "oi_mc_flag": "normal|PERP_HEAVY|PERP_CASINO|null",
+    "oi_mc_caveat": "str|null \u2014 set only on PERP_CASINO + direction=SHORT"
+   }
+  },
+  "test": "tests/test_oi_mc.py",
+  "doc": "docs/oi_mc.md",
+  "_note": "SPEC-122. Read-only, never vetoes a trade (an operator-timed OI-unwind short can still work) \u2014 wired as an annotation into brief's perp layer, triage's row build, and classify's board annotate pass (annotate_oi_mc), reusing the primary-venue OI each capability already resolves (no second OI fetch); only the MC fetch (CoinGecko via pull5.coingecko_layer) is new I/O, and it degrades to null on any failure."
+ },
+ "oi_construction": {
+  "invoke": "python3 capabilities/oi_construction.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC-179 \u2014 OI-type decomposition (arb-vs-directional, CLAUDE.md \u00a70.6 item 3) + venue-role read (mark-engine/size-book/exit/hedge, \u00a70.6.3b). Five OI types (FUNDING_FARM/VESTING_HEDGE/OPERATOR_AMM/MM_INVENTORY/CROSS_VENUE_FUNDING_ARB), each mandatory-gated \u2014 mandatory-alone is never enough to assert. Output is VETO-ONLY (never manufactures confidence); UNKNOWN is first-class with a named reason. CALLS the keyless layer (venue_map/oi_mc/cvd) live; CONSUMES on-chain from EXISTING desk state only (chip_state/flow_confirmed/lock_info are caller-injected \u2014 never a fresh Moralis call).",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "chip_state": "obj? \u2014 injected \u00a72 Cat-A chip-control read from EXISTING state (never fetched here)",
+    "flow_confirmed": "obj? {venue, age_days} \u2014 injected tracked operator-deposit-rail termination",
+    "lock_info": "obj? {cliff_date, carry_violation, perp_discount, pristine_chain, hl_direct_observation} \u2014 injected stake_schedule read"
+   },
+   "out": {
+    "ticker": "str", "as_of": "iso8601",
+    "battlefield": "obj \u2014 the SPEC-177 oi_mc.build_battlefield envelope incl. leverage_state",
+    "venue_roles": "obj{mark_engine,size_book,exit,hedge,as_of} \u2014 each a value/SPLIT/NONE_DETECTED/UNKNOWN",
+    "oi_types": "array[5] \u2014 {type,side,share_read,evidence[],mandatory_met,verdict,reason?}",
+    "verdict": "DIRECTIONAL|ARB_DOMINATED|MIXED|UNKNOWN",
+    "aggregate": "obj{total_oi_usd,overstated_by_cross_venue}",
+    "degraded": "array[{instrument,reason}]",
+    "gating_ok": "bool \u2014 false when the roles block is stale (>4h TTL); stale prints as context, never gates"
+   }
+  },
+  "test": "tests/test_oi_construction.py",
+  "doc": "docs/oi_construction.md",
+  "_note": "SPEC-179. Pure evaluate_<type>/resolve_<role> functions over injected/already-fetched inputs; build_oi_construction is the only I/O orchestrator (venue_map.build_venue_map, oi_mc.build_battlefield, cvd.resolve_spot_venue, plus the one genuinely new endpoint \u2014 fetch_mark_constituents, Aster fapi/v3/indexreferences). G1 contamination rule: a suspected (asserted) OPERATOR_AMM downgrades account-ratio-divergence evidence for every OTHER type on the name. Snapshots append to config/venue_roles.json via --save-roles (never overwritten, history for drift detection)."
+ },
+ "phase": {
+  "invoke": "python3 capabilities/phase.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 20,
+  "desc": "SPEC-104 \u2014 Wyckoff cycle/event classifier (cycle-first breakout gate). Corpus rule (memory: feedback_wyckoff_cycle_first_breakout_gate): the same breakout/breakdown candle is REAL inside accumulation/re-accumulation and BAIT inside distribution \u2014 the cycle, not the candle, decides tradability. Heuristics over ML: rule-based SC/AR/ST/SPRING (bottom) and BC/AR/ST/UTAD (top) detectors, config thresholds, every event carries its evidence. Bottom-side reads ACCUMULATION->MARKUP on a confirmed spring+breakout; top-side reads DISTRIBUTION and stays DISTRIBUTION through a UTAD+breakdown (v1 does not emit MARKDOWN \u2014 see docs/phase.md). UNCLEAR is a first-class honest answer.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)"
+   },
+   "out": {
+    "ticker": "str",
+    "available": "bool",
+    "cycle": "ACCUMULATION|RE-ACCUMULATION|DISTRIBUTION|RE-DISTRIBUTION|MARKUP|MARKDOWN|UNCLEAR|null",
+    "events": "list[{type: SC|BC|AR|ST|SPRING|UTAD|MARKUP_BREAK|MARKDOWN_BREAK, bar_index, evidence}]",
+    "n_bars": "int"
+   }
+  },
+  "test": "tests/test_phase.py",
+  "doc": "docs/phase.md",
+  "_note": "SPEC-104. cycle_gate_for(side, cycle) wired into setup_score.py (breakdown/breakout-triggered setups gain a cycle_gate field \u2014 a WARNING/CYCLE_CONFLICT, not a hard veto) and brief.py (_phase_layer, the phase: <cycle> one-liner leads the headline). classify_breakout_leg flags the grind_trap_suspect 'one fish eaten twice' fingerprint. Small-coin asymmetry baked in: SPRING requires a prior held SC/AR/ST range \u2014 a falling-knife undercut with no held range is never labeled a spring."
+ },
+ "trace_tree": {
+  "invoke": "python3 capabilities/trace_tree.py {root_addr} --token {token} [--chain {chain}] [--depth {depth}] [--min-usd {min_usd}] [--days {days}] [--max-fetches {max_fetches}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 180,
+  "desc": "SPEC-109 \u2014 recursive hop tracer (\u00a78): BFS from a root wallet, reusing verify_wallet.build_verify per node, with a one-line CEX-termination verdict (does any branch of a distribution/fragmentation/rotation tree terminate at a CEX, and at what size?). Replaces ~10 manual verify_wallet rounds (XPIN 2026-07-03 shape) with one call.",
+  "contract": {
+   "in": {
+    "root_addr": "str (required) \u2014 alias: wallet",
+    "token": "str (required) \u2014 ticker (needs contract in tracked config); alias: ticker",
+    "chain": "str? \u2014 restrict to one chain (eth/bsc/base); default = all deployed",
+    "depth": "int? (default 3) \u2014 max BFS hops from root",
+    "min_usd": "float? (default 1000) \u2014 prune edges below this USD size",
+    "days": "int? (default 30) \u2014 lookback window per wallet",
+    "max_fetches": "int? (default 25) \u2014 hard cap on total wallet fetches per run (Moralis quota)"
+   },
+   "out": {
+    "available": "bool",
+    "nodes": "dict[addr -> {terminal: cex|dex|resting|open|null, label, depth}]",
+    "edges": "list[{parent,child,amount_token,amount_usd,label}]",
+    "branches": "list[{path: [addr...], amount_usd, label}] \u2014 root-to-CEX branches",
+    "cex_terminated": "bool",
+    "verdict": "str \u2014 CEX_TERMINATED(...)/NO_CEX_TERMINATION(...), + OPEN_BRANCHES:n when depth-exhausted branches remain",
+    "fetched": "int",
+    "max_fetches": "int",
+    "truncated": "bool",
+    "skipped": "list[str] \u2014 addrs not explored due to the fetch budget"
+   }
+  },
+  "aliases": {
+   "ticker": "token",
+   "wallet": "root_addr"
+  },
+  "test": "tests/test_trace_tree.py",
+  "doc": "docs/trace_tree.md",
+  "_note": "SPEC-109. Terminal classification reuses verify_wallet._classify_addr + onchain.classify_destination (kind=cex/tier cex-hot/exchange -> cex; kind=dex or SPEC-94 dex-router/dex-execution -> dex, never recursed). No new vendor dependency \u2014 fetch layer is verify_wallet.build_verify (Moralis-backed, quota-metered). Budget guard defaults to 25 wallet fetches/run; a cap hit marks truncated:true + skipped + OPEN_BRANCHES in the verdict (never silently 'clean')."
+ },
+ "sector_divergence": {
+  "invoke": "python3 capabilities/sector_divergence.py {ticker} --token-ret {token_ret} [--window-days {window_days}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC-114 \u2014 SOLO_PUMP vs SECTOR_MOVE Cat A pre-classifier: token return vs its sector/narrative basket (Onchain-Analysis-Workshop-CrimeDesk.md Lesson 10). A prior, not a gate \u2014 re-ranks/annotates, never suppresses.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "token_ret": "float (required) \u2014 the token's own % return for the window",
+    "window_days": "float? (default 7, config-overridable)"
+   },
+   "out": {
+    "ticker": "str",
+    "verdict": "SOLO_PUMP|SECTOR_MOVE|MIXED|UNMAPPED|UNAVAILABLE",
+    "window_days": "float",
+    "strongest": "{verdict,token_ret,basket_median_ret,breadth,n,divergence,caveat,basket,label,window_days}|null",
+    "baskets": "list[<same shape as strongest>] \u2014 every basket the token is mapped to"
+   }
+  },
+  "test": "tests/test_sector_divergence.py",
+  "doc": "docs/sector_divergence.md",
+  "_note": "SPEC-114. Baskets in config/sector_baskets.json (cg_category or cg_ids, keyed by basket name) + token_baskets mapping. Wired as a `sector` key (only when mapped \u2014 unmapped rows stay byte-identical) into classify.classify_token, triage._build_row, and screener.build_screen (cheap path: screener's own fetched CG page IS the bsc-microcap basket)."
+ },
+ "dex_execution": {
+  "invoke": "python3 capabilities/dex_execution.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 180,
+  "desc": "SPEC-115 \u2014 DEX execution detector: large swaps by tracked-cluster wallets or their SPEC-98 fresh-wallet children at known routers/pools, sized off the quote/stable leg. EXECUTION (visible, direct cause) vs POSITIONING (a CEX deposit, inferred) \u2014 memory: feedback_predictor_vs_cause_dex_sale_is_execution.",
+  "contract": {
+   "in": {
+    "ticker": "str (required) \u2014 must be in config/tracked_wallets.json"
+   },
+   "out": {
+    "available": "bool",
+    "reason": "str? \u2014 present when available:false (provider down / untracked token / no known dex addresses \u2014 never a clean 'no execution' bill, \u00a73)",
+    "n_hits": "int",
+    "hits": "list[{direction:sell|buy, usd, pool, tx_hash, timestamp, sender, attribution:{kind:tracked|fresh_child,cluster,parent}|null, exploit_dump?:{tx_hash,pct_float,timestamp,from}}]",
+    "lines": "list[str] \u2014 the EXECUTION: ... render lines"
+   }
+  },
+  "test": "tests/test_dex_execution.py",
+  "doc": "docs/dex_execution.md",
+  "_note": "SPEC-115. Known routers = SPEC-94-reclassified 0x238a3588 + apparatus-tier 0xb300000b (both valid swap venues \u2014 operator-specificity comes from the sender) + known_entities.json DEX hints. Wired as the THIRD rotation_freshness evidence leg (FROZEN\u2192ROTATED, cited senior to the CEX-inference leg) \u2014 rides through existing onchain/brief distribution_freshness surfacing with no further wiring."
+ },
+ "drip_seller": {
+  "invoke": "python3 capabilities/drip_seller.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 180,
+  "desc": "SPEC-117 \u2014 drip/DCA-pattern seller detector: recurring, metronomic same-direction executions (DEX swaps and/or CEX-channel deposits) per wallet, individually below SPEC-115's per-swap floor but cumulatively price-relevant (the ESPORTS ~$530K drip-bot lesson).",
+  "contract": {
+   "in": {
+    "ticker": "str (required) \u2014 must be in config/tracked_wallets.json"
+   },
+   "out": {
+    "available": "bool",
+    "reason": "str? \u2014 present when available:false (provider down / untracked token / no known dex-or-CEX addresses \u2014 never a clean 'no drip' bill, \u00a73)",
+    "n_hits": "int",
+    "hits": "list[{verdict:DRIP_SELLER|DRIP_BUYER, wallet, direction:sell|buy, channel, channel_kind:dex-swap|cex-deposit, cumulative_usd, tx_count, median_gap_sec, first_ts, last_ts, run_rate_usd_per_day, attribution:{kind:tracked|fresh_child,cluster,parent}|null}]",
+    "lines": "list[str] \u2014 the EXECUTION (drip): ... render lines"
+   }
+  },
+  "test": "tests/test_drip_seller.py",
+  "doc": "docs/drip_seller.md",
+  "_note": "SPEC-117. Reuses dex_execution.size_swap_hits (min_usd:0 \u2014 the per-swap floor disabled by design) and discover_fresh_children (not re-derived). Wired as a FOURTH rotation_freshness evidence leg alongside `dex` (same seniority \u2014 both confirmed on-chain execution) \u2014 rides through existing onchain/brief distribution_freshness surfacing with no further wiring."
+ },
+ "deposit_breadth": {
+  "invoke": "python3 capabilities/deposit_breadth.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 180,
+  "desc": "SPEC-118 \u2014 deposit-breadth metric: many DISTINCT, largely untracked senders depositing to known CEX channels at once (Lesson 8 predictor #2) \u2014 the pattern-level aggregate the desk's subject-level (tracked-wallet) layer structurally misses (VELVET). Deliberately NOT gated on tracked_wallets.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)"
+   },
+   "out": {
+    "available": "bool",
+    "reason": "str? \u2014 present when available:false (provider down / no known CEX channels \u2014 never a clean 'no breadth' bill, \u00a73)",
+    "spike": "bool",
+    "senders": "int",
+    "baseline": "float \u2014 mean sender count over the persisted prior windows",
+    "ratio": "float|null",
+    "usd": "float",
+    "median_usd": "float",
+    "decomposition": "{tracked:int, fresh:int, unknown:int} \u2014 corroboration AFTER detection, never a gate",
+    "sender_addrs": "list[str] (capped)",
+    "line": "str \u2014 the BREADTH_SPIKE/breadth: ... render line, numbers always"
+   }
+  },
+  "test": "tests/test_deposit_breadth.py",
+  "doc": "docs/deposit_breadth.md",
+  "_note": "SPEC-118. Baseline persisted per-token in state/deposit_breadth_<TICKER>.json (rolling window history) \u2014 cold-start has no baseline yet, so SPIKE can't fire on the first read. Wired as a FIFTH rotation_freshness evidence leg alongside `onchain` (same seniority \u2014 both inferred deposit activity) \u2014 rides through existing onchain/brief distribution_freshness surfacing with no further wiring."
+ },
+ "claim_topup": {
+  "invoke": "python3 capabilities/claim_topup.py [{ticker}] [--op {op}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "SPEC-119: claim/distributor top-up tripwire. Registry-gated (config/tracked_wallets.json wallet kind:claim-distributor) \u2014 an inbound transfer to a registered distributor clearing an absolute-USD or %-float floor is a TOP-UP: a HIGH inbox event, source-classified, linked to any unlocks/stake_schedule calendar cliff (unscheduled if none). --fire-alerts is the sweep hook (ops/surveil.sh cadence, alongside unlocks.py --fire-alerts \u2014 no new loop). Provider-down on one distributor reports unavailable, never a false quiet.",
+  "contract": {
+   "in": {
+    "ticker": "str? \u2014 one token (read mode)",
+    "op": "str? \u2014 read|fire-alerts (default read; fire-alerts sweeps every registered ticker)"
+   },
+   "out": {
+    "ticker": "{ticker,checked,topups:[{ticker,distributor,distributor_address,source_address,source_kind,amount,usd,pct_float,tx,ts,unscheduled,catalyst}],unavailable:[{distributor,address,reason}]}",
+    "fire_alerts": "{fired:int,checked_tickers:int,results:[per-ticker read]}"
+   }
+  },
+  "test": "tests/test_claim_topup.py",
+  "doc": "docs/claim_topup.md",
+  "_note": "reuses onchain.token_transfers (SPEC-97/101/102 provider seam) and unlocks.next_catalyst_for; unlocks.build_unlocks carries a live top-up in its claim_topup field (recent_annotation, decay_window_h)."
+ },
+ "venue_map": {
+  "invoke": "python3 capabilities/venue_map.py {ticker} --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 60,
+  "desc": "SPEC-129 — full cross-venue coverage sweep (§0.6.3b): which venues list this perp and where is the book. CEX four (binance/bybit/aster/bitget) + hyperliquid + the DEX long tail (lighter/paradex/extended/vest), one concurrent probe per venue (~6s each, sweep ≤20s live). §3 doctrine: a probe error/timeout is status:error, NEVER rendered as not_listed and never a 0 datum; not_listed is a venue answering clean with no market. Read-only — no thesis/verdict fields.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)"
+   },
+   "out": {
+    "ticker": "str",
+    "venues": "obj{venue:{status:enum[ok,not_listed,error],funding_pi_4h?,funding_raw_pi?,interval_min?,is_floor?,oi_usd?,oi_share_pct?,vol24h_usd?,reason?}}",
+    "n_listed": "int",
+    "total_oi_usd": "float",
+    "top_oi_venue": "str|null",
+    "oi_top_share_pct": "float|null",
+    "funding_extreme": "{venue,pi_4h}|null — most-extreme (max abs) non-floor 4h-normalized print across ALL listed venues (SPEC-108 convention)"
+   }
+  },
+  "test": "tests/test_venue_map.py",
+  "doc": "docs/venue_map.md",
+  "_note": "reuses regime_flip.to_4h/_is_floor/binance_interval_min/bybit_interval_min (existing normalization/floor layer) and hyperliquid.resolve/universe/is_floor (existing HL source); new code is the DEX adapters (lighter/paradex/extended/vest) plus a not_listed/error-distinguishing fetch wrapper regime_flip.fetch() doesn't provide. Vest's documented endpoint (serverprod.vest.exchange) returned Cloudflare 530 at build/verify time 2026-07-29 — implemented per docs.vest.exchange anyway; a dead origin exercises status:error like any other outage. brief/analyse integration (surface top_oi_venue when it diverges from the briefed venue) is a follow-on spec."
+ },
+ "venue_bars": {
+  "invoke": "python3 capabilities/venue_bars.py {ticker} [--interval {interval}] [--n {n}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC-188 — all-venue 1h OHLC sweep + cross-venue dispersion, the deterministic engine layer behind the §3 all-venue structure rule (user directive repeated 2026-09-01/09-02 — hand discipline failed twice). Fourteen keyless venues (binance/bybit/okx/bitget/kucoin/gate/mexc/htx/bingx/hyperliquid/aster/kraken/blofin/coinbase) fanned out concurrently, ~2s live for OP/BTC. A venue that fails is status available:false+reason — loud, never dropped (§3 zero-print rule). level_agreement() answers the tape-agreement read for one committed level.",
+  "contract": {
+   "in": {
+    "ticker": "str (required)",
+    "interval": "str? — default 1h (only 1h verified against every venue's own granularity string)",
+    "n": "int? — closed bars to pull, default 6 (plus the live/forming bar)"
+   },
+   "out": {
+    "ticker": "str", "interval": "str", "n": "int",
+    "venues": "obj{venue:{venue,available,bars:[{ts,o,h,l,c,quote_vol,live}],turnover_24h_usd?,reason?}}",
+    "n_total": "int", "n_available": "int",
+    "bars": "[{ts,live,n_venues,median_h,median_l,median_c,high_spread_pct,low_spread_pct,close_spread_pct,max_h_venue,min_h_venue,max_l_venue,min_l_venue}] — cross-venue dispersion per bar timestamp",
+    "dominant_tape": "{venue,turnover_24h_usd}|null — max 24h turnover across venues that reported one; NOT the same venue as venue_map's OI-based top_oi_venue",
+    "execution_venue": "str — always aster (§7: fills happen there)"
+   }
+  },
+  "test": "tests/test_venue_bars.py",
+  "doc": "docs/venue_bars.md",
+  "_note": "same adapter-isolation/probe-injection pattern as venue_map.py (SPEC-129) reused for bars instead of funding/OI. turnover_24h_usd verified live for 10/14 venues (binance/bybit/okx/bitget/kucoin/mexc/htx/bingx/aster/hyperliquid); gate/kraken/blofin/coinbase report null rather than a guessed figure — dominant_tape is computed over whichever venues DID report one. Kraken uses its own XBT/BTC symbol convention (KRAKEN_SYMBOL_ALIASES). Consumed by brief (tape block + tape-agreement lines, SPEC-188 §2) and classify (venue_agreement on price-leg events, SPEC-188 §3)."
+ },
+ "perpfinder": {
+  "invoke": "python3 capabilities/perpfinder.py {mode} [--ticker {ticker}] [--venues {venues}] [--size {size}] [--side {side}] [--days {days}] --json",
+  "filter": null,
+  "status": "native",
+  "timeout": 30,
+  "desc": "SPEC-151 — PerpFinder keyless breadth API, SECOND-SOURCE ONLY (never verdict-gating). funding-rates: 2205 symbols x 27 venues in one keyless call, 1h-normalized (funding_pi_4h = rate1h x 4, normalized:true always) so placeholder-floor detection is impossible on it — venue-native prints stay authoritative for any funding verdict. open-interest/volume are venue-level aggregates (not per-asset). oi-long-short is currently empty on the live API (rows:[], empty_reason). slippage/funding-history are majors-only, useless for the desk's micro-cap book. liquidations is a genuine multi-venue liq event stream (sourced from Coinalyze) — breadth next to liqs.py's OKX-native ground truth, never a replacement. Not wired into venue_map/scan/regime_check/brief (explicit non-goal) — a follow-on spec adds it as a cross-check column once hand-verified against venue-native prints on ≥3 names.",
+  "contract": {
+   "in": {
+    "mode": "enum[funding,oi,oi_long_short,volume,liqs,slippage,funding_history] (optional, default funding — SPEC-174)",
+    "ticker": "str? — filter the funding/liqs matrix to one asset; asset for slippage/funding_history (defaults BTC)",
+    "venues": "list[str]? — filter funding/liqs rows to these venues",
+    "size": "float? — slippage mode, required with side",
+    "side": "enum[buy,sell]? — slippage mode, required with size",
+    "days": "int? — funding_history mode window (default 30)"
+   },
+   "out": {
+    "ok": "bool",
+    "mode": "str",
+    "rows|byExchange|exchanges|events": "list — shape DIFFERS per mode, see docs/perpfinder.md table (no uniform envelope)",
+    "venues_covered": "int? — funding/oi/volume only",
+    "meta": "{source:\"perpfinder\", normalized?, updatedAt, dataStatus, schemaVersion, warning?, attribution}",
+    "reason": "str — present only when ok:false"
+   }
+  },
+  "test": "tests/test_perpfinder.py",
+  "doc": "docs/perpfinder.md",
+  "_note": "EVAL-loris.md (2026-07-29, §2 doctrine) established the bar this clears: keyless/free/CORS-open/self-describing, unlike loris (paid key or scraping a private endpoint). Live-verified 2026-08-19/20 — the ticket text is superseded by its own addenda where they conflict; docs/perpfinder.md is the build record."
+ }
+}

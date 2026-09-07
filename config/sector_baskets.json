@@ -1,0 +1,29 @@
+{
+  "_note": "SPEC-114 sector-divergence pre-classifier. Baskets + token->basket mapping are desk-editable seeds, not exhaustive. thresholds documented in capabilities/sector_divergence.py DEFAULT_THRESHOLDS.",
+  "thresholds": {
+    "window_days": 7,
+    "solo_min_token_ret": 40.0,
+    "solo_max_basket_ret": 10.0,
+    "sector_min_basket_ret": 15.0,
+    "sector_inline_multiple": 2.0,
+    "min_basket_size": 4
+  },
+  "baskets": {
+    "ai-depin": {"cg_category": "ai-agents", "label": "AI/DePIN"},
+    "meme": {"cg_category": "meme-token", "label": "meme"},
+    "bsc-microcap": {"cg_category": "binance-smart-chain", "label": "BSC-microcap"},
+    "perp-dex": {"tickers": ["HYPE", "GMX", "DYDX", "GNS", "VELA"],
+                 "cg_ids": ["hyperliquid", "gmx", "dydx-chain", "gains-network", "vela-exchange"],
+                 "label": "perp-dex"}
+  },
+  "token_baskets": {
+    "LAB": ["ai-depin", "bsc-microcap"],
+    "ESPORTS": ["ai-depin", "bsc-microcap"],
+    "COAI": ["ai-depin", "bsc-microcap"],
+    "AIO": ["ai-depin", "bsc-microcap"],
+    "AIOT": ["ai-depin", "bsc-microcap"],
+    "UAI": ["ai-depin", "bsc-microcap"],
+    "BASED": ["meme", "bsc-microcap"],
+    "SLX": ["bsc-microcap"]
+  }
+}

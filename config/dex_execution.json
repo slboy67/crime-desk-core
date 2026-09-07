@@ -1,0 +1,10 @@
+{
+  "_note": "SPEC-115 DEX execution detector thresholds. days = transfer-log lookback; min_usd/min_pct_float = the 'large' swap floor; young_nonce_max reuses SPEC-98's fresh-wallet fingerprint (config/rotation_freshness.json onchain_young_nonce_max) — override here only if this detector should diverge from it; exploit_* gate the EXPLOIT_DUMP_PATTERN? flag.",
+  "days": 14,
+  "min_usd": 50000,
+  "min_pct_float": 0.5,
+  "young_nonce_max": 50,
+  "exploit_window_sec": 86400,
+  "exploit_min_pct_float": 1.0,
+  "max_pools": 6
+}

@@ -1,0 +1,11 @@
+{
+ "_doc": "SPEC-125: coder dispatch transient-API-failure retry. Any key here overrides the documented default in ops/coder_dispatch.sh. transient_signatures: substrings matched against the LAST run's own output tail — a match + zero commits on the failed branch triggers exactly ONE retry (fresh worktree, after retry_backoff_s). max_retries: hard cap (1) — a retry that also fails never retries again; commits on the failed branch (partial work) or a non-matching failure never retry at all.",
+ "transient_signatures": [
+  "Connection closed mid-response",
+  "overloaded_error",
+  "529",
+  "terminated mid-response"
+ ],
+ "retry_backoff_s": 120,
+ "max_retries": 1
+}

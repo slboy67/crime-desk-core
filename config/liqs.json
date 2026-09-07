@@ -1,0 +1,5 @@
+{
+ "_doc": "SPEC-103 liqs (capabilities/liqs.py). Any key here overrides the documented default in DEFAULT_CFG. material_oi_pct: an OI move below this magnitude (%) has nothing to corroborate -> oi_liq_consistency verdict is None. min_confirm_usd: in-window liq notional below this reads as liq-silence for the cross-check.",
+ "material_oi_pct": 10.0,
+ "min_confirm_usd": 10000
+}

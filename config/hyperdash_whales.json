@@ -1,0 +1,24 @@
+{
+  "_note": "Hyperliquid whale seed list for hyperdash_whale_tracker.py. Auto-merged with hl_whales.json. Each whale should be audited via hyperliquid.py before relying on for forward signals. Add via: python3 scripts/hyperdash_whale_tracker.py add <addr> <label>.",
+  "_source": "Seeded 2026-05-26. Initial: hl_whales.json + a few public-known HL whales for testing.",
+  "whales": [
+    {
+      "label": "DISCOVERED-BTC-LONG-0xecb6",
+      "address": "0xecb63caa47c7c4e77f60f1ce858cf28dc2b82b00",
+      "_note": "Auto-discovered 2026-05-27 via Arbitrum HL bridge deposit scan. Deposited $8,694,075, acct $28,368,432. Top position: LONG BTC.",
+      "discovered": "2026-05-26T22:02:38.451097+00:00"
+    },
+    {
+      "label": "DISCOVERED-NEAR-LONG-0x8ab1",
+      "address": "0x8ab13dbc3d2ab5ea4c4b37f40696254a730015ef",
+      "_note": "Auto-discovered 2026-05-27 via Arbitrum HL bridge deposit scan. Deposited $330,935, acct $238,037. Top position: LONG NEAR.",
+      "discovered": "2026-05-26T22:02:38.451129+00:00"
+    },
+    {
+      "label": "DISCOVERED-HYPE-LONG-0xd4ee",
+      "address": "0xd4eeed940e2c0b4b13910128fad5e0bc987e759e",
+      "_note": "Auto-discovered 2026-05-27 via Arbitrum HL bridge deposit scan. Deposited $100,000, acct $58,617. Top position: LONG HYPE.",
+      "discovered": "2026-05-26T22:02:38.451134+00:00"
+    }
+  ]
+}

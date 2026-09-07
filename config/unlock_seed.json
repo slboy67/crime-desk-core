@@ -1,0 +1,14 @@
+{
+  "_note": "SPEC-95 unlock seed/override — the documented FALLBACK for tokens the public auto feed (DefiLlama emissions) doesn't track yet (brand-new names like Audiera). Keyed off cg_id (req #6 token-identity discipline). Each entry: {cg_id, ticker, date (YYYY-MM-DD), amount (token units), type unlock|cliff|tge|vesting, source, detail}. The `unlocks` capability SIZES these off the CANONICAL CoinGecko circulating supply + live price (never a single-chain GoPlus total_supply). Populate from a public unlock tracker (Tokenomist/CryptoRank web) when the auto feed has no coverage; remove once DefiLlama picks the token up.",
+  "seed": [
+    {
+      "cg_id": "audiera",
+      "ticker": "BEAT",
+      "date": "2026-07-01",
+      "amount": 21240000,
+      "type": "cliff",
+      "source": "public-unlock-tracker(tokenomist/cryptorank) 2026-06-30",
+      "detail": "Audiera 21.24M cliff — the BEAT/Audiera July-1 unlock the desk missed until a human brought a Cointelegraph headline. Sized off canonical CG circ (~288M), NOT the GoPlus single-chain 612k (the 3431% bug)."
+    }
+  ]
+}

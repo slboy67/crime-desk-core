@@ -1,0 +1,7 @@
+{
+ "_doc": "SPEC-119 claim/distributor top-up tripwire thresholds. Any key here overrides the documented default in capabilities/claim_topup.py DEFAULT_CFG. min_usd/min_pct_float: an inbound transfer to a registered claim-distributor wallet clearing EITHER floor = a top-up. lookback_days: token-flow history window checked each sweep. decay_window_h: how long a top-up stays 'recent' for the unlocks/brief annotation.",
+ "min_usd": 200000,
+ "min_pct_float": 2.0,
+ "lookback_days": 14,
+ "decay_window_h": 96
+}

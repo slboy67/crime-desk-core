@@ -1,0 +1,17 @@
+{
+ "_doc": "SPEC-104 Wyckoff phase classifier (capabilities/phase.py). Any key here overrides the documented default in DEFAULT_CFG. vol_lookback: trailing bars for the volume/range baseline. sc_vol_mult/sc_range_mult: climax thresholds (volume/range >= this x the trailing average). ar_window/ar_min_bounce_pct: AR search window + min bounce off the climax extreme. st_window/st_vol_ratio_max/st_retest_tolerance_pct: ST search window, max volume vs the climax, retest proximity tolerance. spring_window/spring_reclaim_bars: spring/UTAD search window + reclaim window. impulse_min_pct/impulse_max_bars: what counts as a clean breakout/breakdown impulse. grind_dwell_bars/grind_max_close_range_pct: the slow-grind/one-fish-two-eats trap flag.",
+ "vol_lookback": 10,
+ "sc_vol_mult": 2.5,
+ "sc_range_mult": 1.8,
+ "ar_window": 6,
+ "ar_min_bounce_pct": 8.0,
+ "st_window": 15,
+ "st_vol_ratio_max": 0.5,
+ "st_retest_tolerance_pct": 6.0,
+ "spring_window": 20,
+ "spring_reclaim_bars": 3,
+ "impulse_min_pct": 4.0,
+ "impulse_max_bars": 3,
+ "grind_dwell_bars": 6,
+ "grind_max_close_range_pct": 2.5
+}

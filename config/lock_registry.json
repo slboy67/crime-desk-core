@@ -1,0 +1,4 @@
+{
+  "_note": "SPEC-182 — ticker -> on-chain lock/vesting contract, the resolution point oi_construction.fetch_lock_info needs to call stake_schedule (keyless RPC) without a fresh Moralis lookup. No entry for a ticker = lock_info stays unresolved (not an attempt, no degraded row) exactly like today. Populate from a verified lock-contract audit (memory/reference_lock_contract_audit_workflow or similar) before adding an entry here — a wrong contract silently fabricates a VESTING_HEDGE mandatory gate. Each entry: {ticker, contract, chain}.",
+  "registry": []
+}

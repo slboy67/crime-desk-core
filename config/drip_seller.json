@@ -1,0 +1,14 @@
+{
+  "_note": "SPEC-117 drip/DCA-pattern seller detector thresholds. window_h = trailing fingerprint window; min_n = minimum same-direction executions; cv_gap_max/cv_size_max = cadence/size regularity ceilings (coefficient of variation); gap_quantized_tol/gap_quantized_frac = alt cadence test for fixed-interval bots; cumulative_floor_usd = the cumulative USD (stable/quote leg) floor to qualify; days = transfer-log lookback; young_nonce_max reuses SPEC-98's fresh-wallet fingerprint (config/rotation_freshness.json onchain_young_nonce_max); max_channels/max_wallets bound provider reads.",
+  "window_h": 72,
+  "min_n": 6,
+  "cv_gap_max": 0.35,
+  "cv_size_max": 0.5,
+  "gap_quantized_tol": 0.15,
+  "gap_quantized_frac": 0.7,
+  "cumulative_floor_usd": 50000,
+  "days": 3,
+  "young_nonce_max": 50,
+  "max_channels": 3,
+  "max_wallets": 20
+}

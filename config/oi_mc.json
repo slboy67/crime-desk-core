@@ -1,0 +1,10 @@
+{
+ "_doc": "SPEC-122 oi_mc (capabilities/oi_mc.py). Any key here overrides the documented default in DEFAULT_CFG. perp_heavy_min: oi_mc_ratio at/above this (and at/below perp_casino_min) flags PERP_HEAVY (derivatives large vs float -- weight perp signals, discount on-chain). perp_casino_min: oi_mc_ratio above this flags PERP_CASINO (OI dominates the entire market cap -- vertical/chop/unwind profile, the desk's -26.3R blowoff-short signature; EVAA printed 252% OI/MC 2026-07-10). Below perp_heavy_min is normal (on-chain float dominates).",
+ "perp_heavy_min": 0.5,
+ "perp_casino_min": 1.5,
+ "_doc_battlefield": "SPEC-177 battlefield/leverage_state (overrides DEFAULT_BF_CFG). perp_led_min: perp/spot 24h-vol ratio at/above this -> perp_led (also fires on a heavy OI/MC flag alone, ratio not required). spot_led_max: ratio at/below this AND oi_mc flag 'normal' -> spot_led. delta_oi_sig_4h/48h: |ΔOI%| significance floor per leverage_state window -- sub-threshold ΔOI has no verdict.",
+ "perp_led_min": 4.0,
+ "spot_led_max": 2.0,
+ "delta_oi_sig_4h": 8.0,
+ "delta_oi_sig_48h": 15.0
+}

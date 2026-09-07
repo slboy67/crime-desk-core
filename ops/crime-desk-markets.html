@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CRIME DESK — markets</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  crime-desk-markets.html — the desk's own discovery board. No loris, no third party.
+  Data: Bybit v5 public API, directly from your browser (CORS-open, no key).
+    - tickers (1 call/min): price, funding, OI, volume for the whole linear-perp universe
+    - per-symbol OI history (sweep every 15 min): real 24h OI change, desk-computed
+  Funding is normalized per-interval -> %/4h using each symbol's TRUE funding interval (§3).
+  Open by double-clicking the file. If the table shows a CORS/network error on file://,
+  serve it instead:  cd ops && python3 -m http.server 8787  ->  http://localhost:8787/crime-desk-markets.html
+-->
+<style>
+  body{margin:0;background:#0c0d10;color:#d4d4d8;font:13px/1.5 ui-monospace,Menlo,monospace}
+  header{display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap;border-bottom:1px solid #1c1d22;position:sticky;top:0;background:#0c0d10;z-index:5}
+  header b{color:#f4f4f5;letter-spacing:.08em;font-size:14px}
+  .badge{color:#0c0d10;background:#22c55e;border-radius:4px;padding:0 7px;font-weight:700}
+  .ctl{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{background:#1c1d22;border:1px solid #3a3b42;color:#d4d4d8;border-radius:6px;padding:3px 10px;cursor:pointer;font:inherit}
+  button.on{background:#22c55e;color:#0c0d10;border-color:#22c55e}
+  #cfg{display:flex;gap:12px;align-items:center;padding:6px 16px;color:#71717a;flex-wrap:wrap;border-bottom:1px solid #1c1d22}
+  #cfg input[type=number]{width:62px;background:#111;border:1px solid #333;color:#d4d4d8;border-radius:4px;padding:2px 5px;font:inherit}
+  #status{margin-left:auto;color:#52525b}
+  #err{display:none;margin:10px 16px;padding:8px 12px;border:1px solid #7f1d1d;border-radius:8px;background:#1c0d0d;color:#fca5a5}
+  main{padding:0 16px 20px}
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th{text-align:right;color:#71717a;font-weight:500;padding:5px 9px;cursor:pointer;white-space:nowrap;position:sticky;top:46px;background:#0c0d10}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:4px 9px;text-align:right;border-top:1px solid #1c1d22;white-space:nowrap}
+  td a{color:#f4f4f5;text-decoration:none;font-weight:600}
+  td a:hover{text-decoration:underline}
+  tr.thin td{opacity:.45}
+  .up{color:#22c55e}.dn{color:#ef4444}.mut{color:#52525b}
+  .sig{border-radius:4px;padding:0 6px;font-weight:700;color:#0c0d10}
+  .wl{color:#818cf8;font-weight:700}
+  #note{color:#52525b;padding:10px 0}
+  textarea{width:100%;height:70px;background:#111;border:1px solid #333;color:#d4d4d8;border-radius:6px;margin-top:8px;font:inherit;display:none}
+</style>
+</head>
+<body>
+<header>
+  <b>CRIME DESK · markets</b>
+  <button id="tab-discover">DISCOVER</button>
+  <button id="tab-desk">DESK</button>
+  <span class="badge" id="count">…</span>
+  <span class="ctl">
+    <button id="copy">copy json</button>
+    <button id="newonly">new only</button>
+    <button id="editbtn">edit list</button>
+    <button id="editexbtn">edit excludes</button>
+    <button id="reload">↻</button>
+  </span>
+</header>
+<div id="cfg">
+  vol ≥ $<input type="number" id="minvol" min="0"> M
+  · OI ≤ $<input type="number" id="maxoi" min="0"> M
+  · top <input type="number" id="topn" min="5" max="500">
+  <span id="status"></span>
+</div>
+<div id="err"></div>
+<main>
+  <div id="tblwrap"></div>
+  <textarea id="edit" spellcheck="false"></textarea>
+  <textarea id="editex" spellcheck="false"></textarea>
+  <div id="note"></div>
+</main>
+<script>
+'use strict';
+/* ---------- desk lists (editable in UI, persisted) ---------- */
+const SEED = ['PIEVERSE','UB','EDEN','ZAMA','KITE','COLLECT','HOME','SLX','LAB','CHIP','IDOL','COAI','AIO','AIOT','CLO','DRIFT','RE','JCT','VELVET','H','BEAT','BASED','UAI','BAS','XPIN','ALLO','TAIKO','BLUR','M','Q','LYN','ID','OPG','TAG','BLUAI','0G','GWEI','OGN','US','B3','PUMP','SYN','PARTI','DEXE','AEON','RIVER','BTR','MAGMA','SKYAI'];
+const EXCLUDE_SEED = ['BTC','ETH','SOL','XRP','BNB','DOGE','ADA','LINK','LTC','AVAX','DOT','TRX','SHIB','SUI','HYPE','TON','GRAM','BCH','XLM','NEAR','APT','ICP','ETC','UNI','AAVE','FIL','ARB','OP','ATOM','HBAR','KAS','XMR','ZEC','PEPE','WIF','BONK','FET','TAO','RENDER','INJ','SEI','TIA','JUP','ENA','ONDO','WLD','USDT','USDC','DAI','FDUSD','WBTC','WETH','STETH','XAUT','PAXG'];
+
+const LS = k => 'cdm_' + k;
+const get = (k, d) => { try { const v = JSON.parse(localStorage.getItem(LS(k))); return v == null ? d : v; } catch (e) { return d; } };
+const set = (k, v) => { try { localStorage.setItem(LS(k), JSON.stringify(v)); } catch (e) {} };
+
+let DESK = get('tickers', SEED), EXCL = get('excludes', EXCLUDE_SEED);
+let deskSet = new Set(DESK), exclSet = new Set(EXCL);
+let tab = get('tab', 'discover'), newOnly = get('new_only', false);
+let cfg = get('cfg', { minVolM: 5, maxOiM: 300, top: 60 });
+let sortKey = 'oi_chg24_pct', sortDir = -1;
+
+/* ---------- bybit fetch layer ---------- */
+const BB = 'https://api.bybit.com';
+let tickers = new Map();      // base -> ticker row
+let intervals = new Map();    // base -> funding interval minutes
+let oi24 = new Map();         // base -> {oi_usd_24h_ago, ts}
+let sweepState = { running: false, done: 0, total: 0, ts: get('sweep_ts', 0) };
+const oi24Cache = get('oi24', {});
+for (const [k, v] of Object.entries(oi24Cache)) oi24.set(k, v);
+
+const base = sym => sym.replace(/USDT$/, '');
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+
+async function fetchTickers() {
+  const r = await fetch(BB + '/v5/market/tickers?category=linear');
+  const j = await r.json();
+  if (j.retCode !== 0) throw new Error('bybit tickers retCode ' + j.retCode);
+  tickers = new Map();
+  for (const t of j.result.list) {
+    if (!/USDT$/.test(t.symbol)) continue;
+    tickers.set(base(t.symbol), {
+      symbol: t.symbol,
+      price: num(t.lastPrice),
+      chg24: num(t.price24hPcnt) != null ? num(t.price24hPcnt) * 100 : null,
+      vol24_usd: num(t.turnover24h),
+      oi_usd: num(t.openInterestValue),
+      funding_raw: num(t.fundingRate) != null ? num(t.fundingRate) * 100 : null  // % per interval
+    });
+  }
+}
+
+async function fetchIntervals() {
+  const cached = get('intervals', null);
+  if (cached && Date.now() - cached.ts < 24 * 3600e3) { intervals = new Map(cached.rows); return; }
+  let cursor = '', rows = [];
+  for (let page = 0; page < 5; page++) {
+    const r = await fetch(BB + '/v5/market/instruments-info?category=linear&limit=1000' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
+    const j = await r.json();
+    if (j.retCode !== 0) break;
+    for (const it of j.result.list) if (/USDT$/.test(it.symbol)) rows.push([base(it.symbol), it.fundingInterval || 480]);
+    cursor = j.result.nextPageCursor;
+    if (!cursor) break;
+  }
+  intervals = new Map(rows);
+  set('intervals', { ts: Date.now(), rows });
+}
+
+/* real 24h OI change: per-symbol history (1h bars, 25 points). qty*price_24h_ago -> usd */
+async function sweepOI(bases) {
+  if (sweepState.running) return;
+  sweepState = { ...sweepState, running: true, done: 0, total: bases.length };
+  const CONC = 8;
+  let idx = 0;
+  const worker = async () => {
+    while (idx < bases.length) {
+      const b = bases[idx++];
+      const t = tickers.get(b);
+      if (!t) { sweepState.done++; continue; }
+      try {
+        const r = await fetch(BB + '/v5/market/open-interest?category=linear&symbol=' + t.symbol + '&intervalTime=1h&limit=25');
+        const j = await r.json();
+        const list = j.result && j.result.list;
+        if (j.retCode === 0 && list && list.length) {
+          const oldest = list[list.length - 1];                 // ~24h ago (list is newest-first)
+          const qty = num(oldest.openInterest);
+          const px24 = t.chg24 != null && t.price != null ? t.price / (1 + t.chg24 / 100) : t.price;
+          if (qty != null && px24 != null && qty > 0) oi24.set(b, { oi_usd_24h_ago: qty * px24, ts: Date.now() });
+        }
+      } catch (e) { /* per-symbol failure -> stays unknown, shown as … never 0 (§3) */ }
+      sweepState.done++;
+      if (sweepState.done % 25 === 0) { setStatus(); render(); }
+    }
+  };
+  await Promise.all(Array.from({ length: CONC }, worker));
+  sweepState.running = false; sweepState.ts = Date.now();
+  set('sweep_ts', sweepState.ts);
+  set('oi24', Object.fromEntries(oi24));
+  setStatus(); render();
+}
+
+/* ---------- desk math ---------- */
+/* SPEC-19 lesson: bybit's +0.005% print is a placeholder FLOOR, not a datum — masked -1.65%/4h once. */
+const isFloor = b => { const t = tickers.get(b); return t && t.funding_raw != null && Math.abs(t.funding_raw - 0.005) < 1e-9; };
+const f4h = b => {
+  const t = tickers.get(b); if (!t || t.funding_raw == null || isFloor(b)) return null; // floor -> unknown, never flat
+  const iv = intervals.get(b) || 480;
+  return t.funding_raw * (240 / iv);
+};
+function oiChg(b) {
+  const t = tickers.get(b), h = oi24.get(b);
+  if (!t || !h || t.oi_usd == null || !h.oi_usd_24h_ago) return null;
+  return (t.oi_usd / h.oi_usd_24h_ago - 1) * 100;
+}
+function signature(b) {
+  const f = f4h(b), oi = oiChg(b);
+  if (oi == null) return null;
+  if (oi >= 10 && f != null && f <= -0.10) return ['SQZ-LOAD', '#22c55e'];
+  if (oi >= 10 && f != null && f >= 0.10) return ['CROWD-LONG', '#ef4444'];
+  if (oi >= 10) return ['BUILD', '#eab308'];
+  return null;
+}
+function universe() {
+  const out = [];
+  for (const [b, t] of tickers) {
+    if (exclSet.has(b)) continue;
+    if ((t.vol24_usd || 0) < cfg.minVolM * 1e6) continue;
+    if (t.oi_usd == null || t.oi_usd <= 0 || t.oi_usd > cfg.maxOiM * 1e6) continue;
+    if (newOnly && deskSet.has(b)) continue;
+    out.push(b);
+  }
+  return out;
+}
+
+/* ---------- render ---------- */
+const fmtUsd = n => n == null ? '—' : n >= 1e9 ? '$' + (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? '$' + (n / 1e3).toFixed(0) + 'K' : '$' + n.toFixed(0);
+const fmtPct = n => n == null ? '<span class="mut">…</span>' : '<span class="' + (n >= 0 ? 'up' : 'dn') + '">' + (n > 0 ? '+' : '') + n.toFixed(1) + '%</span>';
+const fmtPx = n => n == null ? '—' : n >= 1000 ? '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : n >= 1 ? '$' + n.toFixed(2) : '$' + n.toPrecision(3);
+const el = id => document.getElementById(id);
+const COLS = [['sym','Symbol'],['price','Price'],['chg24','Px Δ24h'],['vol24_usd','Vol 24h'],['oi_usd','OI'],['oi_chg24_pct','OI Δ24h'],['fund','Fund %/4h'],['iv','Intv'],['sig','Signal']];
+
+function rowVal(b, k) {
+  const t = tickers.get(b);
+  if (k === 'oi_chg24_pct') return oiChg(b);
+  if (k === 'fund') return f4h(b);
+  return t ? t[k] : null;
+}
+function rowHtml(b) {
+  const t = tickers.get(b);
+  if (!t) return '<tr class="thin"><td>' + b + '</td><td colspan="8" style="text-align:left" class="mut">not listed on bybit — check other venues (SPEC-129)</td></tr>';
+  const f = f4h(b), oi = oiChg(b), sig = signature(b);
+  const iv = intervals.get(b) || 480;
+  const thin = (t.vol24_usd || 0) < 10e6 ? ' class="thin"' : '';
+  return '<tr' + thin + '><td><a href="https://www.bybit.com/trade/usdt/' + t.symbol + '" target="_blank">' + b + '</a>' +
+    (tab === 'discover' && deskSet.has(b) ? ' <span class="wl">•wl</span>' : '') + '</td>' +
+    '<td>' + fmtPx(t.price) + '</td><td>' + fmtPct(t.chg24) + '</td>' +
+    '<td>' + fmtUsd(t.vol24_usd) + '</td><td>' + fmtUsd(t.oi_usd) + '</td>' +
+    '<td><b>' + fmtPct(oi) + '</b></td>' +
+    '<td class="' + (f == null ? 'mut' : f < 0 ? 'dn' : 'up') + '">' +
+    (isFloor(b) ? '<span title="bybit +0.005% placeholder floor — real rate unknown (SPEC-19); check venue">⚠floor</span>' :
+      (f == null ? '—' : (f > 0 ? '+' : '') + f.toFixed(3)) +
+      ' <span class="mut">(' + (t.funding_raw == null ? '—' : (t.funding_raw > 0 ? '+' : '') + t.funding_raw.toFixed(4)) + ')</span>') + '</td>' +
+    '<td class="mut">' + (iv / 60) + 'h</td>' +
+    '<td>' + (sig ? '<span class="sig" style="background:' + sig[1] + '">' + sig[0] + '</span>' : '') + '</td></tr>';
+}
+function render() {
+  let bases, count;
+  if (tab === 'discover') {
+    bases = universe();
+    bases.sort((a, b2) => {
+      const av = rowVal(a, sortKey), bv = rowVal(b2, sortKey);
+      if (av == null && bv == null) return 0; if (av == null) return 1; if (bv == null) return -1;
+      return (av - bv) * sortDir;
+    });
+    count = Math.min(bases.length, cfg.top) + '/' + bases.length;
+    bases = bases.slice(0, cfg.top);
+    el('note').innerHTML = 'the NET, desk-owned: bybit linear universe, majors+stables excluded, vol≥floor, OI≤cap — OI Δ24h computed from bybit OI history against price-adjusted 24h-ago value (our number, not an aggregator\'s). funding is TRUE per-interval normalized to %/4h (raw in parens). a hit is a CANDIDATE — §4 gate still applies. dim = vol<$10M (§7). bybit-only universe: DEX-only listings need SPEC-129/130.';
+  } else {
+    bases = [...DESK];
+    bases.sort((a, b2) => {
+      const av = rowVal(a, sortKey), bv = rowVal(b2, sortKey);
+      if (av == null && bv == null) return 0; if (av == null) return 1; if (bv == null) return -1;
+      return (av - bv) * sortDir;
+    });
+    count = bases.filter(b => tickers.has(b)).length + '/' + DESK.length;
+    el('note').innerHTML = 'the WATCHLIST board (bybit legs only — names not on bybit are flagged, never dropped).';
+  }
+  el('tblwrap').innerHTML = '<table><thead><tr>' +
+    COLS.map(c => '<th data-k="' + c[0] + '">' + c[1] + (sortKey === c[0] ? (sortDir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') +
+    '</tr></thead><tbody>' + bases.map(rowHtml).join('') + '</tbody></table>';
+  el('count').textContent = count;
+  document.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.k; if (k === 'sym' || k === 'sig' || k === 'iv') return;
+    if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = -1; }
+    render();
+  }));
+  syncBtns();
+}
+function setStatus() {
+  const s = el('status');
+  if (sweepState.running) s.textContent = 'OI history sweep ' + sweepState.done + '/' + sweepState.total + '…';
+  else if (sweepState.ts) s.textContent = 'ticks 60s · OI Δ sweep ' + Math.round((Date.now() - sweepState.ts) / 60000) + 'm ago';
+  else s.textContent = 'first OI sweep pending…';
+}
+function syncBtns() {
+  el('tab-discover').classList.toggle('on', tab === 'discover');
+  el('tab-desk').classList.toggle('on', tab === 'desk');
+  el('newonly').classList.toggle('on', newOnly);
+  el('newonly').style.display = tab === 'discover' ? '' : 'none';
+}
+
+/* ---------- export for the desk session ---------- */
+function exportJson() {
+  const bases = tab === 'discover' ? universe().sort((a, b2) => (oiChg(b2) ?? -1e9) - (oiChg(a) ?? -1e9)) : [...DESK];
+  const candidates = bases.map(b => {
+    const t = tickers.get(b);
+    if (!t) return { ticker: b, not_listed_on_bybit: true };
+    const sig = signature(b);
+    return { ticker: b, price_usd: t.price, px_chg24_pct: t.chg24, vol24_usd: t.vol24_usd, oi_usd: t.oi_usd,
+      oi_chg24_pct: oiChg(b), funding_4h: f4h(b), funding_raw_pi: t.funding_raw, funding_is_floor: isFloor(b),
+      funding_interval_min: intervals.get(b) || 480, signature: sig ? sig[0] : null, on_watchlist: deskSet.has(b) };
+  });
+  return { source: 'bybit v5 public API, desk-computed (crime-desk-markets.html)', generated_at: new Date().toISOString(),
+    view: tab, cfg: tab === 'discover' ? cfg : null, new_only: newOnly, universe_bybit: tickers.size, candidates,
+    caveats: ['bybit-only universe — DEX-only listings absent (SPEC-129/130 for full coverage)',
+      'oi_chg24_pct null = history not yet swept or fetch failed — unknown, NOT zero (§3)',
+      'signature = §4 legs 1-2 prior only, NOT a verdict'] };
+}
+
+/* ---------- wiring ---------- */
+el('minvol').value = cfg.minVolM; el('maxoi').value = cfg.maxOiM; el('topn').value = cfg.top;
+['minvol','maxoi','topn'].forEach(id => el(id).addEventListener('change', () => {
+  cfg = { minVolM: +el('minvol').value || 0, maxOiM: +el('maxoi').value || 1e9, top: Math.max(5, +el('topn').value || 60) };
+  set('cfg', cfg); render();
+}));
+el('tab-discover').addEventListener('click', () => { tab = 'discover'; set('tab', tab); render(); });
+el('tab-desk').addEventListener('click', () => { tab = 'desk'; set('tab', tab); render(); });
+el('newonly').addEventListener('click', () => { newOnly = !newOnly; set('new_only', newOnly); render(); });
+el('reload').addEventListener('click', () => boot(true));
+el('copy').addEventListener('click', () => {
+  const snap = exportJson();
+  navigator.clipboard.writeText(JSON.stringify(snap, null, 1)).then(() => {
+    el('copy').textContent = 'copied ' + snap.candidates.length;
+    setTimeout(() => el('copy').textContent = 'copy json', 2000);
+  });
+});
+const bindEditor = (btnId, taId, getList, save) => {
+  el(btnId).addEventListener('click', () => {
+    const ta = el(taId);
+    if (ta.style.display === 'none' || !ta.style.display) { ta.value = getList().join(', '); ta.style.display = 'block'; ta.focus(); }
+    else { save(ta.value.toUpperCase().split(/[\s,;]+/).filter(Boolean)); ta.style.display = 'none'; render(); }
+  });
+};
+bindEditor('editbtn', 'edit', () => DESK, l => { DESK = l; deskSet = new Set(l); set('tickers', l); });
+bindEditor('editexbtn', 'editex', () => EXCL, l => { EXCL = l; exclSet = new Set(l); set('excludes', l); });
+
+async function boot(force) {
+  el('err').style.display = 'none';
+  try {
+    await fetchIntervals();
+    await fetchTickers();
+    render(); setStatus();
+    const stale = Date.now() - (sweepState.ts || 0) > 15 * 60e3;
+    if (force || stale) sweepOI([...new Set([...universe(), ...DESK.filter(b => tickers.has(b))])]);
+  } catch (e) {
+    el('err').style.display = 'block';
+    el('err').textContent = 'bybit fetch failed: ' + e.message +
+      ' — if opened as file://, serve it instead: cd ops && python3 -m http.server 8787 → http://localhost:8787/crime-desk-markets.html';
+  }
+}
+boot(false);
+setInterval(async () => { try { await fetchTickers(); render(); setStatus(); } catch (e) {} }, 60000);
+setInterval(() => { if (!sweepState.running && Date.now() - (sweepState.ts || 0) > 15 * 60e3) boot(false); }, 60000);
+</script>
+</body>
+</html>

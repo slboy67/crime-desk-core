@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.crimedesk.discovery-tick</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__DESK_ROOT__/ops/discovery_tick.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__DESK_ROOT__</string>
+  <!-- Runs hourly; each leg is internally cadence-gated by marker age (faded_bounce 6h,
+       radars 12h, local_index 12h), so the hourly wake just means a leg fires promptly
+       once it comes due rather than waiting for a coarse timer. -->
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>StandardOutPath</key>
+  <string>__DESK_ROOT__/state/launchd-discovery-tick.out</string>
+  <key>StandardErrorPath</key>
+  <string>__DESK_ROOT__/state/launchd-discovery-tick.err</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CRIMEDESK_NTFY_URL</key>
+    <string>__NTFY_URL__</string>
+  </dict>
+</dict>
+</plist>

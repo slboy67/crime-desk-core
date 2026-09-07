@@ -1,0 +1,7 @@
+{
+ "_doc": "SPEC-102 tracked-set local indexer (capabilities/local_index.py). Any key here overrides the documented default in DEFAULT_CFG. reorg_tail_blocks: re-scan + replace this many trailing blocks every ingest run (reorg tolerance). backfill_days: initial backfill bound for a never-ingested (chain,contract) pair. freshness_max_age_min: the index head must be within this of the live chain head to serve reads (SPEC-97 seam provider) — older = stale_index, falls through to the vendor chain. rpc_call_budget: max getLogs calls per ingest() run, so a cold backfill can't hammer public RPCs; resumes next tick.",
+ "reorg_tail_blocks": 200,
+ "backfill_days": 30,
+ "freshness_max_age_min": 30,
+ "rpc_call_budget": 40
+}

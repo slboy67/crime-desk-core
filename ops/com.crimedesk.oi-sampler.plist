@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.crimedesk.oi-sampler</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>__DESK_ROOT__/ops/oi_sampler.py</string>
+    <string>tick</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__DESK_ROOT__</string>
+  <!-- SPEC-178: own 15m cadence — deliberately NOT folded into funding_surveil (a
+       paging monitor must not die on an append-layer throw) or discovery_tick (12h
+       legs, far too coarse for OI-elasticity sampling). -->
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>StandardOutPath</key>
+  <string>__DESK_ROOT__/state/launchd-oi-sampler.out</string>
+  <key>StandardErrorPath</key>
+  <string>__DESK_ROOT__/state/launchd-oi-sampler.err</string>
+</dict>
+</plist>
