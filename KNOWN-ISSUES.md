@@ -6,6 +6,17 @@ test suite at copy time (see README for the count). The list below is every feat
 standalone. Sources: the open coder tickets in the original repo (`handoffs/specs/open/SPEC-*`),
 the three unmerged coder branches, and `ARCHITECTURE.md §8`.
 
+> **UPDATE 2026-09-08** — this doc tracks the **live desk**, which has moved since the 09-07
+> snapshot. Progress since the cut:
+> - **FIXED in the live desk** (not yet in this snapshot — a re-cut is needed to propagate):
+>   **SPEC-202** (venue_http shared per-host rate budget + 418/429/ban registry + kline cache;
+>   merged `ba2ea61`, 2,498 tests green); **SPEC-193** (compact render; landed).
+> - **SPEC-200 folded into SPEC-199** (both Aster-wallet; mode 2 = watchlist-tick sampler).
+> - **Still open / in-flight:** SPEC-195, 196, 197 (classify/thesis P1s), 194, 198, 190, 199, 201, and
+>   **SPEC-184/185** (in-flight on branch `coder/auto-20260907-161634`, not merged).
+> - **Still open (unfiled/`_oldrepo`):** native ports of `oi_sides`/`moralis`/`safe_audit`/`onchain_analyser`.
+> Participants should treat the “**FIXED**” items here as resolved in the source desk and pending a re-cut.
+
 ## A. Excluded — not self-contained (depends on the legacy parts bin `_oldrepo/`)
 
 The original repo symlinks `_oldrepo` → an untested legacy repo outside git. That code is
@@ -67,8 +78,8 @@ call into it and therefore degrade or fail in this repo until natively ported:
 ### `price_structure` — SPEC-184
 - The kline resolver can serve a dead/stale symbol series as a plausible structure (HNT: a single 2024 bar). Fix on the same unmerged branch as above; NOT in this copy.
 
-### `scan` (faded_bounce fan-out), `price_structure`, `depth`, `venue_map`, `venue_bars`, `oi_mc` — SPEC-202 (P1)
-- Fan-out sweeps have no shared per-host rate budget or kline cache; three back-to-back `scan '{"mode":"faded_bounce"}'` runs got the desk IP banned on Binance (HTTP 418, ~35 min) and Aster. Run at most one sweep per session. A fix (`capabilities/venue_http.py`) exists on the unmerged branch `coder/auto-20260907-185445`; NOT in this copy.
+### `scan` (faded_bounce fan-out), `price_structure`, `depth`, `venue_map`, `venue_bars`, `oi_mc` — SPEC-202 (P1) ✅ FIXED
+- Fan-out sweeps have no shared per-host rate budget or kline cache; three back-to-back `scan '{"mode":"faded_bounce"}'` runs got the desk IP banned on Binance (HTTP 418, ~35 min) and Aster. Run at most one sweep per session. **FIXED in the live desk** (merged `ba2ea61`; `capabilities/venue_http.py` with the shared per-host rate budget, 418/429/ban registry, and kline cache) — but **NOT in this snapshot**; re-cut to receive it.
 
 ### `cvd` / `brief` — SPEC-198
 - `cvd_divergence` and `perp_aggressor` (the SPEC-191 addendum) are not implemented.
@@ -82,8 +93,8 @@ call into it and therefore degrade or fail in this repo until natively ported:
 ### `oi_construction` (SPEC-179/180)
 - Working but bounded by design: the on-chain injection points (`chip_state` / `flow_confirmed` / `lock_info`) have no wired source, so most reads land `UNKNOWN`. Correct behaviour per §3, not a bug, but the layer is incomplete.
 
-### Coder pipeline (`ops/coder_dispatch.sh`, `ops/premerge.sh`) — SPEC-193/194
-- Passes `--max-turns`, which the installed `claude` CLI ignores; `--max-budget-usd` is the only real cap.
+### Coder pipeline (`ops/coder_dispatch.sh`, `ops/premerge.sh`) — SPEC-193/194 (partly fixed)
+- Passes `--max-turns`, which the installed `claude` CLI ignores; `--max-budget-usd` is the only real cap. **SPEC-193 landed** (compact render is now the orchestrator default; its REVIEW-REQUEST only was missing); **SPEC-194** (drop the no-op `--max-turns`, fix `maxsize`'s stale oracle wording) is still **open/in-flight**.
 - Both scripts expect `_oldrepo` and `config/secrets.json` to exist to link into worktrees.
 - Machine-specific: launchd plists + claims under `~/Library/Application Support/crimedesk/`; `ops/install_launchd.sh` renders them.
 
